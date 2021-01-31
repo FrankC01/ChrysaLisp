@@ -129,7 +129,7 @@
   (prtnl " -e   prints session variables")
   (prtnl " -e+  adds value to session (e.g. -e+ name Jane Doe")
   (prtnl " -e-  removes value from session (e.g. -e- name)")
-  (prtnl " -c   re-executes last command")
+  (prtnl " !!   re-executes last command")
   (prtnl "")
   (prtnl "Additioinal Commands:")
   (prtnl "")
@@ -182,7 +182,7 @@
               "-e+"   set-session       ; Add session value
               "-e-"   drop-session      ; Remove session value
 
-              "-c"    last-command      ; Re-execute past command
+              "!!"    last-command      ; Re-execute past command
               ))
 
 (defun process-input (bfr)
@@ -196,7 +196,6 @@
   (cond
     (in
       ; Found internal command, execute and return
-      (prtnl (str "Internal command request " ic))
       (in ic (if (> (length sp) 1) (join (rest sp) " ") ""))
       (print (prompt)))
     (t

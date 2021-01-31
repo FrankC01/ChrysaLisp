@@ -75,7 +75,6 @@
       (exports-keyvals!
         "PROMPT"      ">"
         "LASTC"       nil
-        "PATH"        "cmd;apps"
         "PATH_SEP"    fsep))
     (progn
       ; Load the existing user .hostenv

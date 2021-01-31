@@ -27,7 +27,8 @@ endif
 	@echo $(OS) > platform
 	@echo $(ABI) > abi
 	@echo "ROOT=$(PWD)" >> .hostenv
-	@echo "HE_VER=2" >> .hostenv
+	@echo "HE_VER=3" >> .hostenv
+	@echo "PATH=$(PWD)/cmd;$(PWD)/apps" >> .hostenv
 	@echo "OS=$(OS)" >> .hostenv
 	@echo "CPU=$(CPU)" >> .hostenv
 	@echo "ABI=$(ABI)" >> .hostenv
