@@ -14,10 +14,10 @@
 	(byte 'main+ 'task+ 'reply+ 'timer+))
 
 (defq vdu_width 38 vdu_height 12 text_buf nil
-	flicker_rate (/ 1000000 10) timer_rate (/ 1000000 1) max_move_time 10000000 id t
+	flicker_rate (/ 1000000 8) timer_rate (/ 1000000 1) max_move_time 10000000 id t
 	select (list (task-mailbox) (mail-alloc-mbox) (mail-alloc-mbox) (mail-alloc-mbox))
 	brd "RNBQKBNRPPPPPPPP                                pppppppprnbqkbnr"
-	history (list brd) color white start_time (pii-time) replys (list) next_seq 0)
+	history (list brd) color +white+ start_time (pii-time) replys (list) next_seq 0)
 
 (ui-window mywindow (:color +argb_black+)
 	(ui-flow _ (:flow_flags +flow_down_fill+)
@@ -52,35 +52,32 @@
 (defun time-in-seconds (_)
 	(str (/ _ 1000000) "." (pad (% _ 1000000) 6 "00000")))
 
-(defun dispatch-job (child)
+(defun dispatch-job (key val)
 	;send job to child
-	(defq val (. farm :find child))
 	(. val :insert :timestamp (pii-time))
-	(mail-send child (cat
+	(mail-send (. val :find :child) (cat
 		(elem +select_reply+ select)
-		(char max_move_time long_size)
-		(char color long_size)
+		(char max_move_time +long_size+)
+		(char color)
 		brd (apply cat history)))
 	;update display
 	(setq text_buf (vdu-print vdu (list "")
-		(cat (LF) "Elapsed Time: " (time-in-seconds (- (pii-time) start_time)) (LF))))
-	(if (= color (const white))
-		(vdu-print vdu text_buf (cat "White to move:" (LF)))
-		(vdu-print vdu text_buf (cat "Black to move:" (LF))))
+		(cat (LF) "Elapsed Time: " (time-in-seconds (- (pii-time) start_time)) (LF)
+			(if (= color +white+) "White to move:" "Black to move:") (LF))))
 	;reset reply sequence
 	(clear replys)
 	(setq next_seq 0))
 
-(defun create (nodes)
-	; (create nodes)
+(defun create (key val nodes)
+	; (create key val nodes)
 	;function called when entry is created
 	(open-task "apps/chess/child.lisp" (elem (random (length nodes)) nodes)
-		kn_call_child (elem +select_task+ select)))
+		kn_call_child key (elem +select_task+ select)))
 
 (defun destroy (key val)
 	; (destroy key val)
 	;function called when entry is destroyed
-	(mail-send key "")
+	(when (defq child (. val :find :child)) (mail-send child ""))
 	(mail-free-mbox (elem +select_reply+ select))
 	(elem-set +select_reply+ select (mail-alloc-mbox)))
 
@@ -102,28 +99,27 @@
 					(t (. mywindow :event msg))))
 			((= idx +select_task+)
 				;child launch responce
-				(defq child (slice (const long_size) (const (+ long_size net_id_size)) msg))
-				(. farm :insert child (emap))
-				(dispatch-job child))
+				(defq key (get-long msg 0) child (slice +long_size+ (const (+ +long_size+ net_id_size)) msg))
+				(when (defq val (. farm :find key))
+					(. val :insert :child child)
+					(dispatch-job key val)))
 			((= idx +select_reply+)
 				;child reply, process in sequence order
 				(sort (# (- (get-long %1 0) (get-long %0 0))) (push replys msg))
 				(while (and (/= (length replys) 0)
 							(= (get-long (elem -2 replys) 0) next_seq))
 					(setq msg (pop replys) next_seq (inc next_seq))
-					(defq data_type (elem (const long_size) msg)
-						data (slice (const (inc long_size)) -1 msg))
+					(defq data_type (elem +long_size+ msg)
+						data (slice (const (inc +long_size+)) -1 msg))
 					(cond
 						;move
 						((eql data_type "b")
-							(defq new_brd data)
 							(each (lambda (_)
 								(display-board brd)
 								(task-sleep flicker_rate)
-								(display-board new_brd)
+								(display-board data)
 								(task-sleep flicker_rate)) (range 0 2))
-							(setq color (neg color) brd new_brd)
-							(push history brd)
+							(push history (setq color (neg color) brd data))
 							(. farm :close)
 							(setq farm (Farm create destroy 1)))
 						;end

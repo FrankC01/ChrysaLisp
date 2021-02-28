@@ -110,6 +110,7 @@
 (ffi repl "class/lisp/lisp_repl" 0)
 (ffi catch "class/lisp/lisp_catch" 1)
 (ffi cond "class/lisp/lisp_cond" 1)
+(ffi if "class/lisp/lisp_if" 1)
 (ffi while "class/lisp/lisp_while" 1)
 (ffi prin "class/lisp/lisp_prin" 0)
 (ffi print "class/lisp/lisp_print" 0)
@@ -123,12 +124,8 @@
 (ffi pii-time "sys/pii/lisp_time" 0)
 (ffi pii-write-char "sys/pii/lisp_writechar" 0)
 
-;C++ ChrysaLisp !
-(cond
-	((get 'nums))
-	((defq prebind (lambda (_) _))))
-
 (defq t 't nil 'nil
+	+byte_size+ 1 +short_size+ 2 +int_size+ 4 +long_size+ 8 +ptr_size+ 8
 	defmacro '(macro (n a &rest _) `(defq ,n (macro ,a ~_))))
 
 (defmacro defun (n a &rest _)
@@ -220,14 +217,9 @@
 ; Control flow
 ;;;;;;;;;;;;;;
 
-(defmacro if (x y &optional _)
-	; (if tst form [eform])
-	(cond (_ `(cond (,x ,y) (t ,_)))
-		(t `(cond (,x ,y)))))
-
 (defmacro not (_)
 	; (not form) -> t | nil
-	`(cond (,_ nil) (t)))
+	(list if _ nil t))
 
 (defmacro when (x &rest _)
 	; (when tst body)

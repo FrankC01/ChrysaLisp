@@ -27,8 +27,7 @@ endif
 	@echo $(OS) > platform
 	@echo $(ABI) > abi
 	@echo "ROOT=$(PWD)" >> .hostenv
-	@echo "HE_VER=3" >> .hostenv
-	@echo "PATH=$(PWD)/cmd;$(PWD)/apps" >> .hostenv
+	@echo "HE_VER=2" >> .hostenv
 	@echo "OS=$(OS)" >> .hostenv
 	@echo "CPU=$(CPU)" >> .hostenv
 	@echo "ABI=$(ABI)" >> .hostenv
@@ -61,8 +60,8 @@ obj/$(CPU)/$(ABI)/$(OS)/main_gui:	obj/$(CPU)/$(ABI)/$(OS)/main_gui.o obj/$(CPU)/
 ifeq ($(OS),Darwin)
 	c++ -o $@ $@.o \
 		obj/$(CPU)/$(ABI)/$(OS)/vp64.o \
-		-F/Library/Frameworks \
-		-Wl,-framework,SDL2 -Wl
+		-F /opt/homebrew/Cellar/sdl2/2.0.14_1/lib \
+		$(shell sdl2-config --libs)
 endif
 ifeq ($(OS),Linux)
 	c++ -o $@ $@.o \
@@ -83,7 +82,7 @@ endif
 obj/$(CPU)/$(ABI)/$(OS)/main_gui.o:	src/main.cpp src/pii.h Makefile
 ifeq ($(OS),Darwin)
 	c++ -O3 -c -D_GUI=GUI -nostdlib -fno-exceptions \
-		-I/Library/Frameworks/SDL2.framework/Headers/ \
+		-I /opt/homebrew/Cellar/sdl2/2.0.14_1/include/SDL2/ \
 		-o $@ $<
 endif
 ifeq ($(OS),Linux)

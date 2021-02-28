@@ -26,9 +26,20 @@ path string pool may have been stripped after binding in order to save memory
 space.
 
 The total size of a function and the start of the code and path Vtable sections
-are aligned to a ptr_size.
+are aligned to a +ptr_size+.
 
 ### Header fields
+
+```vdu
+(def-struct 'fn_header 'ln_fnode)
+	(ushort 'length)
+	(ushort 'entry)
+	(ushort 'links)
+	(ushort 'paths)
+	(ushort 'stack)
+	(offset 'pathname)
+(def-struct-end)
+```
 
 * ulong/ptr ln_fnode: In a bound function the address of the next function in
 the function list. When unbound -1.
@@ -38,7 +49,7 @@ the function list. When unbound -1.
 * ushort fn_header_entry: Offset in bytes to the code entry point.
 
 * ushort fn_header_links: Offset in bytes to the external function Vtable.
-Vtable entries are ptr_size. In unbound format they are relative offsets to
+Vtable entries are +ptr_size+. In unbound format they are relative offsets to
 entries in the path pool. In bound format they are pointers to the code section
 of the external functions.
 
@@ -138,15 +149,15 @@ Virtual bind to method.
 
 ### d-call
 
-De-Virtualise call method.
+De-Virtualize call method.
 
 ### d-jump
 
-De-Virtualise jump to method.
+De-Virtualize jump to method.
 
 ### d-bind
 
-De-Virtualise bind to method.
+De-Virtualize bind to method.
 
 ### r-call
 

@@ -224,6 +224,10 @@
 
 (. textfield :key_down event) -> textfield
 
+## textfield :layout
+
+(. textfield :layout) -> textfield
+
 ## .
 
 (. this :method [arg ...])
@@ -1190,7 +1194,7 @@
 
 ## if
 
-(if tst form [eform])
+(if tst form [else_form])
 
 ## import
 
@@ -1536,10 +1540,6 @@
 
 (open-child task mode) -> str
 
-## open-farm
-
-(open-farm task num mode [devices]) -> (list str ...)
-
 ## open-pipe
 
 (open-pipe tasks) -> (list str ...)
@@ -1550,7 +1550,7 @@
 
 ## open-task
 
-(open-task task node mode reply)
+(open-task task node mode key_num reply)
 
 ## opt
 

@@ -14,9 +14,9 @@
 (structure '+select 0
 	(byte 'main+ 'task+ 'reply+ 'nodes+))
 
-(defq max_tasks 1 max_memory 1 last_max_tasks 1 last_max_memory 1
-	rate (/ 1000000 5) retry_timeout 1000000 id t
-	select (list (task-mailbox) (mail-alloc-mbox) (mail-alloc-mbox) (mail-alloc-mbox)))
+(defq max_tasks 1 max_memory 1 last_max_tasks 1 last_max_memory 1 rate (/ 1000000 3) id t
+	select (list (task-mailbox) (mail-alloc-mbox) (mail-alloc-mbox) (mail-alloc-mbox))
+	retry_timeout (if (starts-with "obj/vp64" (load-path)) 10000000 1000000))
 
 (ui-window mywindow ()
 	(ui-title-bar _ "Network Monitor" (0xea19 0xea1b 0xea1a) +event_close+)
@@ -46,7 +46,7 @@
 		(:insert :task_bar tb))
 	(. memory_grid :add_child mb)
 	(. task_grid :add_child tb)
-	(open-task "apps/netmon/child.lisp" key kn_call_open (elem +select_task+ select))
+	(open-task "apps/netmon/child.lisp" key kn_call_open 0 (elem +select_task+ select))
 	val)
 
 (defun destroy (key val)
@@ -92,8 +92,8 @@
 					(t (. mywindow :event msg))))
 			((= idx +select_task+)
 				;child launch responce
-				(defq child (slice (const long_size) (const (+ long_size net_id_size)) msg)
-					val (. global_tasks :find (slice (const long_size) -1 child)))
+				(defq child (slice +long_size+ (const (+ +long_size+ net_id_size)) msg)
+					val (. global_tasks :find (slice +long_size+ -1 child)))
 				(when val
 					(.-> val
 						(:insert :child child)

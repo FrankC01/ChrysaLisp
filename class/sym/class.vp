@@ -27,7 +27,7 @@
 		(call 'sym :intern_cstr {next} {sym})
 		(call 'list :push_back {syms, sym})
 		(call 'sys_str :length {next} {_, length})
-	(loop-until {(next + length + byte_size => next) = $props_end})
+	(loop-until {(next + length + +byte_size+ => next) = $props_end})
 	(assign {syms} {@sys/statics/statics.statics_sym_syms})
 
 	(exit 'sym :get_static_sym {sym})
@@ -192,7 +192,7 @@
 		(call 'str :deref '((r0 0)))
 		(assign '((rsp local_sym) (rsp local_iter_begin) (rsp local_iter_end)) '(r0 r1 r2))
 		(assign '(r0) '((r1 0)))
-		(vp-add-cr ptr_size r1)
+		(vp-add-cr +ptr_size+ r1)
 	(loop-end)
 
 	(exit 'sym :intern_strs '((rsp local_syms)))
@@ -206,8 +206,7 @@
 	;r0-r14
 
 	(fn-bind 'sys/statics/statics r0)
-	(call 'hset :for_each '((r0 statics_sym_intern) ($ flush_callback) 0))
-	(vp-ret)
+	(jump 'hset :for_each '((r0 statics_sym_intern) ($ flush_callback) 0))
 
 (vp-label 'flush_callback)
 	;inputs

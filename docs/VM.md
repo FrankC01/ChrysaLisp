@@ -275,8 +275,8 @@ Implementation of the function is defined in the `sys/str/class.vp` file.
 		(vp-cpy-ir-ub r1 0 r3)
 		(vp-sub-rr r3 r2)
 		(breakif '(r2 /= 0) '(r3 = 0))
-		(vp-add-cr byte_size r0)
-		(vp-add-cr byte_size r1)
+		(vp-add-cr +byte_size+ r0)
+		(vp-add-cr +byte_size+ r1)
 	(loop-end)
 	(exit 'sys_str :compare '(r2))
 	(vp-ret)
@@ -296,7 +296,7 @@ into what these calls do to get your function compiled and written out, look in
 
 Next there is a section of documentation, this format can be parsed out by the
 `make docs` command line tool. Parsed documentation ends up in the
-`docs/CLASSES.md` file.
+`docs/VP_CLASSES.md` file.
 
 The `(entry 'sys_str :compare '(r0 r1))` and `(exit 'sys_str :compare
 '(r2))` calls are helpers to make sure input and output parameters get copied
