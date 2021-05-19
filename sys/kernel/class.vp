@@ -24,15 +24,16 @@
 	;info
 	;loader is already initialized when we get here !
 
-	(union
-		(ptr 'argv)
-		(ptr 'link))
-	(ptr 'statics 'mbox_addr 'msg 'data 'tuple 'key)
-	(pptr 'iter_begin 'iter_end)
-	(struct 'best_id 'node_id)
-	(struct 'node_id 'node_id)
-	(ulong 'time)
-	(uint 'best_cnt)
+	(def-vars
+		(union
+			(ptr argv)
+			(ptr link))
+		(ptr statics mbox_addr msg data tuple key)
+		(pptr iter_begin iter_end)
+		(struct best_id node_id_size)
+		(struct node_id node_id_size)
+		(ulong time)
+		(uint best_cnt))
 
 	(push-scope)
 	(entry {argv})
@@ -61,14 +62,14 @@
 	(call 'sys_mail :statics_init1)
 
 	;set random node ID
-	(call 'sys_pii :rand {&statics->statics_sys_task_kernel_node_id, node_id_size})
+	(call 'sys_pii :rand {&statics->statics_sys_task_kernel_node_id, +node_id_size})
 	(call 'sys_kernel :id nil {node_id.node_id_node1, node_id.node_id_node2})
 
 	;process command options
 	(call 'opts {argv})
 
 	;start routing pings
-	(call 'node :create {0, node_id_size} {key})
+	(call 'node :create {0, +node_id_size} {key})
 	(call 'sys_load :bind `(,(str (f-path 'sys_kernel :ping))) '(r0))
 	(vpif '(r0 /= 0))
 		(call 'sys_task :start '(r0))
@@ -89,19 +90,19 @@
 			(breakif '(r1 = 0))
 			(call 'sys_mail :read '(r0) {msg, data})
 			;which kernel call number
-			(assign {data->kn_msg_func} '(r0))
+			(assign {data->+kn_msg_func} '(r0))
 			(switch)
-			(vpcase '(r0 = kn_call_open))
+			(vpcase '(r0 = +kn_call_open))
 			(vp-label 'run_here)
 				;fill in reply ID, user field is left alone !
-				(call 'opt_run {&data->kn_msg_open_pathname} '(r0 r1 r2))
-				(assign {msg, data, kn_msg_reply_size} '(r3 r4 r5))
-				(assign-net-id r4 kn_msg_reply_id r3 msg_dest r6 r7 r8)
-				(save-net-id r4 kn_msg_reply_id r0 r1 r2)
+				(call 'opt_run {&data->+kn_msg_open_pathname} '(r0 r1 r2))
+				(assign {msg, data, +kn_msg_reply_size} '(r3 r4 r5))
+				(assign-net-id r4 +kn_msg_reply_id r3 msg_dest r6 r7 r8)
+				(save-net-id r4 +kn_msg_reply_id r0 r1 r2)
 				(assign '(r5) '((r3 msg_frag_length)))
 				(call 'sys_mail :send '(r3))
 				(break)
-			(vpcase '(r0 = kn_call_child))
+			(vpcase '(r0 = +kn_call_child))
 				;find best cpu to run task
 				(assign {statics->statics_sys_task_task_count} {best_cnt})
 				(assign {node_id.node_id_node1} {best_id.node_id_node1})
@@ -109,7 +110,7 @@
 				(call 'array :get_both {statics->statics_sys_mail_links_array} {_, iter_begin, iter_end})
 				(loop-while {iter_begin /= iter_end})
 					(assign {*iter_begin} {link})
-					(assign {iter_begin + +ptr_size+} {iter_begin})
+					(assign {iter_begin + +ptr_size} {iter_begin})
 					(continueifnot {link->lk_node_task_count})
 					(continueif {link->lk_node_task_count >= best_cnt})
 					(assign {link->lk_node_task_count} {best_cnt})
@@ -123,13 +124,14 @@
 				(assign {best_id.node_id_node2} {msg->msg_dest.net_id_node_id.node_id_node2})
 				(call 'sys_mail :send {msg})
 				(break)
-			(vpcase '(r0 = kn_call_ping))
+			(vpcase '(r0 = +kn_call_ping))
 				;new services/routing ping
-				(ptr 'session 'set)
-				(long 'hops)
-				(union
-					(ptr 'bucket 'new_key)
-					(ptr 'services 'entries))
+				(def-vars
+					(ptr session set)
+					(long hops)
+					(union
+						(ptr bucket new_key)
+						(ptr services entries)))
 				(push-scope)
 
 				;timestamp
@@ -137,10 +139,10 @@
 
 				;find/create the routing tuple for the origin
 				(assign {data, key} '(r0 r1))
-				(assign-node-id r0 kn_msg_ping_origin r1 str_data)
+				(assign-node-id r0 +kn_msg_ping_origin r1 str_data)
 				(call 'hmap :find {statics->statics_sys_mail_node_map, key} {_, tuple, bucket})
 				(vpifnot {tuple})
-					(call 'node :create {&data->kn_msg_ping_origin, node_id_size} {new_key})
+					(call 'node :create {&data->+kn_msg_ping_origin, +node_id_size} {new_key})
 					(call 'array :create nil {tuple})
 					;service set, time, session, hops, then any vias...
 					(call 'hset :create `((@ ,(f-path 'str :same)) 1) {set})
@@ -148,68 +150,67 @@
 					(call 'array :push_back2 {tuple, -1, -1})
 					(call 'list :push_back2 {bucket, new_key, tuple})
 				(else)
-					(assign {(pptr tuple)[+ptr_size+]} {tuple})
+					(assign {(pptr tuple)[+ptr_size]} {tuple})
 				(endif)
 
 				;update routing entries for the origin ?
 				(call 'array :get_begin {tuple} '(_ r1))
-				(assign `((r1 ,(* +long_size+ 2)) (r1 ,(* +long_size+ 3))) '(r1 r2))
+				(assign `((r1 ,(* +long_size 2)) (r1 ,(* +long_size 3))) '(r1 r2))
 				(assign '(r1 r2) {session, hops})
 				(switch)
-				(breakif {data->kn_msg_ping_session < session})
-				(vpcase {data->kn_msg_ping_session > session})
+				(breakif {data->+kn_msg_ping_session < session})
+				(vpcase {data->+kn_msg_ping_session > session})
 					;new routing session, clear vias, update session and hops
 					(call 'array :set_length {tuple, 1})
 					(call 'array :push_back {tuple, time})
-					(call 'array :push_back2 {tuple, data->kn_msg_ping_session, data->kn_msg_ping_hops})
+					(call 'array :push_back2 {tuple, data->+kn_msg_ping_session, data->+kn_msg_ping_hops})
 					(goto 'flood_via)
-				(vpcase {data->kn_msg_ping_hops < hops})
+				(vpcase {data->+kn_msg_ping_hops < hops})
 					;better route, clear vias, update hops
 					(call 'array :set_length {tuple, 3})
-					(call 'array :push_back {tuple, data->kn_msg_ping_hops})
+					(call 'array :push_back {tuple, data->+kn_msg_ping_hops})
 				(vp-label 'flood_via)
 					(call 'array :push_back2 {tuple,
-						data->kn_msg_ping_via.node_id_node1,
-						data->kn_msg_ping_via.node_id_node2})
+						data->+kn_msg_ping_via.node_id_node1,
+						data->+kn_msg_ping_via.node_id_node2})
 					(call 'flood_fill {statics , msg, data, node_id.node_id_node1, node_id.node_id_node2})
 					(break)
-				(vpcase {data->kn_msg_ping_hops = hops})
+				(vpcase {data->+kn_msg_ping_hops = hops})
 					;equal route, push via, but no need to flood onwards !
 					(call 'array :push_back2 {tuple,
-						data->kn_msg_ping_via.node_id_node1,
-						data->kn_msg_ping_via.node_id_node2})
+						data->+kn_msg_ping_via.node_id_node1,
+						data->+kn_msg_ping_via.node_id_node2})
 				(endswitch)
 
 				;don't update services if I am orign !
 				(switch)
-				(breakif {data->kn_msg_ping_session <= session})
-				(breakifnot {(node_id.node_id_node1 - data->kn_msg_ping_origin.node_id_node1)
-							| (node_id.node_id_node2 - data->kn_msg_ping_origin.node_id_node2)})
+				(breakif {data->+kn_msg_ping_session <= session})
+				(breakifnot {(node_id.node_id_node1 - data->+kn_msg_ping_origin.node_id_node1)
+							| (node_id.node_id_node2 - data->+kn_msg_ping_origin.node_id_node2)})
 				(default)
-					(call 'str :create_from_buffer {&data->kn_msg_ping_services, msg->msg_frag_length - kn_msg_ping_services} {services})
-					(call 'str :split_char {services, +char_lf+} {_, entries})
+					(call 'str :create_from_buffer {&data->+kn_msg_ping_services, msg->msg_frag_length - +kn_msg_ping_services} {services})
+					(call 'str :split_char {services, +char_lf} {_, entries})
 					(call 'str :destroy {services})
 					(call 'list :get_both {entries} {_, iter_begin, iter_end})
 					(call 'array :get_first {tuple} {_, set})
 					(call 'hset :clear {set})
 					(loop-while {iter_begin /= iter_end})
 						(call 'hset :insert {set, *iter_begin})
-						(assign {iter_begin + +ptr_size+} {iter_begin})
+						(assign {iter_begin + +ptr_size} {iter_begin})
 					(loop-end)
 					(call 'list :destroy {entries})
 				(endswitch)
+
 				(pop-scope)
-			(vp-label 'drop_msg)
 				(call 'sys_mail :free {msg})
 				(break)
-			(vpcase '(r0 = kn_call_callback))
+			(vpcase '(r0 = +kn_call_callback))
 				;call callback with this thread/stack
-				(assign {data->kn_msg_user, data->kn_msg_callback_addr} '(r0 r1))
+				(assign {data->+kn_msg_key, data->+kn_msg_callback_addr} '(r0 r1))
 				(vp-call-r r1)
-				;reply to originator
-				(assign {data, msg} '(r1 r0))
-				(assign-net-id r1 kn_msg_reply_id r0 msg_dest)
-				(call 'sys_mail :send '(r0))
+				;wake originator
+				(call 'sys_task :resume {data->+kn_msg_reply_id.net_id_mbox_id)})
+				(call 'sys_mail :free {msg})
 			(endswitch)
 		(loop-end)
 
@@ -267,20 +268,20 @@
 	(entry `(,statics ,msg ,data ,knode1 ,knode2))
 
 	;inc hops
-	(assign `((,data kn_msg_ping_hops)) '(r0))
+	(assign `((,data +kn_msg_ping_hops)) '(r0))
 	(vp-add-cr 1 r0)
-	(assign '(r0) `((,data kn_msg_ping_hops)))
+	(assign '(r0) `((,data +kn_msg_ping_hops)))
 	;old via
-	(load-node-id data kn_msg_ping_via vnode1 vnode2)
+	(load-node-id data +kn_msg_ping_via vnode1 vnode2)
 	;set new via
-	(save-node-id data kn_msg_ping_via knode1 knode2)
+	(save-node-id data +kn_msg_ping_via knode1 knode2)
 	;loop over the links
 	(assign `((,statics statics_sys_mail_links_array)) '(r0))
 	(class/array/get_both r0 iter iter_end)
 	(vp-cpy-rr iter iter_begin)
 	(loop-while (list iter '/= iter_end) 'next_link)
 		(assign `((,iter 0)) `(,link_node))
-		(vp-add-cr +ptr_size+ iter)
+		(vp-add-cr +ptr_size iter)
 		;this links peer
 		(load-node-id link_node lk_node_peer_node_id knode1 knode2)
 		;not there yet ?
@@ -297,7 +298,7 @@
 		(vp-cpy-rr iter_begin r2)
 		(loop-start)
 			(assign '((r2 0)) `(,link_node))
-			(vp-add-cr +ptr_size+ r2)
+			(vp-add-cr +ptr_size r2)
 			(breakif (list r2 '= iter))
 			(load-node-id link_node lk_node_peer_node_id r0 r1)
 			(vp-sub-rr knode1 r0)
@@ -321,11 +322,12 @@
 	;info
 	;process command options
 
-	(pptr 'argv)
-	(ptr 'arg)
-	(plong 'table)
-	(long 'offset)
-	(int 'len)
+	(def-vars
+		(pptr argv)
+		(ptr arg)
+		(plong table)
+		(long offset)
+		(int len))
 
 	(push-scope)
 	(entry {argv})
@@ -333,12 +335,12 @@
 	(loop-start)
 		(assign {*argv} {arg})
 		(breakifnot {arg})
-		(assign {argv + +ptr_size+} {argv})
+		(assign {argv + +ptr_size} {argv})
 		(assign {$options_table} {table})
 		(loop-start 'next_arg)
 			(assign {*table} {offset})
 			(breakifnot {offset})
-			(assign {table + +ptr_size+} {table})
+			(assign {table + +ptr_size} {table})
 			(call 'sys_str :compare {table, arg})
 			(vpif (list (method-output 'sys_str :compare 0) '= 0))
 				(assign {*argv} {arg})
@@ -348,7 +350,7 @@
 				(break 'next_arg)
 			(endif)
 			(call 'sys_str :length {table} {_, len})
-			(assign {(table + len + +ptr_size+) & - +ptr_size+} {table})
+			(assign {(table + len + +ptr_size) & - +ptr_size} {table})
 		(loop-end)
 	(loop-end)
 
@@ -363,9 +365,10 @@
 	;trashes
 	;r0-r14
 
-	(ptr 'arg 'func 'msg)
-	(struct 'id 'net_id)
-	(uint 'length)
+	(def-vars
+		(ptr arg func msg)
+		(struct id net_id_size)
+		(uint length))
 
 	(push-scope)
 	(entry {arg})
@@ -445,17 +448,17 @@
 	(assign `(,(str (f-path 'sys_link :usb_link))) '(r0))
 	(goto 'opt_link_run)
 
-	(vp-align +ptr_size+)
+	(vp-align +ptr_size)
 (vp-label 'options_table)
 	(vp-long `(- ,(label-sym 'opt_run) ,(label-sym 'options_table)))
 		(vp-string "-run") (vp-byte 0)
-		(vp-align +ptr_size+)
+		(vp-align +ptr_size)
 	(vp-long `(- ,(label-sym 'opt_link) ,(label-sym 'options_table)))
 		(vp-string "-l") (vp-byte 0)
-		(vp-align +ptr_size+)
+		(vp-align +ptr_size)
 	(vp-long `(- ,(label-sym 'opt_usb_link) ,(label-sym 'options_table)))
 		(vp-string "-u") (vp-byte 0)
-		(vp-align +ptr_size+)
+		(vp-align +ptr_size)
 	(vp-long 0)
 
 (def-func-end)
@@ -477,10 +480,9 @@
 (def-method 'sys_kernel :ping)
 	;started by kernel at boot
 
-	(def-struct 'local)
-		(struct 'node_id 'node_id)
-		(ulong 'now)
-	(def-struct-end)
+	(def-struct local 0
+		(struct node_id node_id_size)
+		(ulong now))
 
 	(vp-alloc local_size)
 
@@ -524,10 +526,9 @@
 	;r1 = element iterator (pptr)
 	;r2 = bucket list pointer (ptr)
 
-	(def-struct 'local)
-		(ptr 'bucket)
-		(pptr 'iter)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr bucket)
+		(pptr iter))
 
 	(vp-def (data iter bucket key tuple kid1 kid2 did1 did2))
 
@@ -535,7 +536,7 @@
 	(entry 'hmap :each_callback `(,data ,iter ,bucket))
 	(assign `(,iter ,bucket) '((rsp local_iter) (rsp local_bucket)))
 
-	(assign `((,iter 0) (,iter +ptr_size+)) `(,key ,tuple))
+	(assign `((,iter 0) (,iter +ptr_size)) `(,key ,tuple))
 	(load-node-id key str_data kid1 kid2)
 	(load-node-id data (+ local_node_id node_id_node1) did1 did2)
 	(vp-sub-rr did1 kid1)
@@ -544,7 +545,7 @@
 	(switch)
 	(breakif (list kid1 '= 0))
 	(assign `((,tuple array_begin) (,data local_now)) `(,tuple ,kid1))
-	(assign `((,tuple +ptr_size+)) `(,kid2))
+	(assign `((,tuple +ptr_size)) `(,kid2))
 	(vp-sub-rr kid2 kid1)
 	(breakif (list kid1 '< (* ping_period 2)))
 	(default)
@@ -560,10 +561,9 @@
 	;r0 = mail list (ptr)
 	;r1 = now (ulong)
 
-	(def-struct 'local)
-		(ptr 'next)
-		(ulong 'now)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr next)
+		(ulong now))
 
 	(vp-def (time now node next))
 

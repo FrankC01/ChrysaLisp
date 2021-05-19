@@ -13,7 +13,8 @@
 	;inputs
 	;msg of lisp filename
 
-	(ptr 'script 'stream 'lisp 'file 'value 'args)
+	(def-vars
+		(ptr script stream lisp file value args))
 
 	;init app vars
 	(push-scope)
@@ -46,7 +47,7 @@
 			(vp-label 'error)
 				;error in repl
 				(call 'lisp :repl_print {lisp, lisp->lisp_stderr, value})
-				(call 'stream :write_char {lisp->lisp_stderr, +char_lf+})
+				(call 'stream :write_char {lisp->lisp_stderr, +char_lf})
 				(call 'stream :flush {lisp->lisp_stderr})
 			(else)
 				;do we have a main ?
@@ -63,8 +64,11 @@
 	(endif)
 	(call 'str :deref {script})
 
-	;flush interned symbols and mem blocks
-	(call 'sym :flush)
+	;flush interned symbols, nums and mem blocks
+	(fn-bind 'sys/statics/statics r0)
+	(call 'hset :flush '((r0 statics_sym_intern)))
+	(fn-bind 'sys/statics/statics r0)
+	(call 'hset :flush '((r0 statics_num_intern)))
 	(call 'sys_mem :collect)
 
 	(pop-scope)

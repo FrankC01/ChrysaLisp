@@ -2,7 +2,8 @@
 
 Assembler/C-Script/Lisp 64 bit, MIMD, multi CPU, multi threaded, multi core,
 multi user Parallel OS. With GUI, Terminal, OO Assembler, Class libraries,
-C-Script compiler, Lisp interpreter, Debugger, Profiler, and more...
+C-Script compiler, Lisp interpreter, Debugger, Profiler, Vector Font engine and
+more...
 
 
 ![](./screen_shot_1.png)
@@ -23,6 +24,12 @@ You can model various network topologies with point to point links. Each CPU in
 the network is modelled as a separate host process, point to point links use
 shared memory to simulate CPU to CPU, point to point, bi directional
 connections. There is no global bus based networking on purpose.
+
+The usb-links branch has the ability to use a usb3/usb2 Prolific chip 'copy'
+cable to join heterogeneous host networks ! This demonstrates that the
+simulated peer to peer network on a single machine does actually translate to
+real world parallel hardware ! Plus it's rather cool to string your MacBook and
+Windows laptops together with your PI4's to create your own dev network.
 
 There is a virtual CPU instruction set to avoid use of x64/ARM/VP64 native
 instructions. Currently it compiles directly to native code but there is no
@@ -69,16 +76,16 @@ regardless, at the Lisp command prompt. This Lisp has a C-Script 'snippets'
 capability to allow mixing of C-Script compiled expressions within assignment
 and function calling code. An elementary optimise pass exists for these
 expressions. Both the virtual assembler and C-Script compiler are written in
-Lisp, look in the *sys/code.inc*, *sys/func.inc*, *sys/x64.inc*,
-*sys/arm64.inc* and *sys/vp.inc* for how this is done. Some of the Lisp
-primitives are constructed via a boot script that each instance of a Lisp class
-runs on construction, see *class/lisp/boot.inc* for details. The compilation
-and make environment, along with all the compile and make commands are created
-via the Lisp command line tool in *lib/asm/asm.inc*, again this auto runs for
-each instance of the `lisp` command run from the terminal. You can extend this
-with any number of additional files, just place them after the lisp command and
-they will execute after the *lib/asm/asm.inc* file and before processing of
-stdin.
+Lisp, look in the *sys/code.inc*, *lib/asm/xxx.inc*, *sys/func.inc*,
+*sys/x64.inc*, *sys/arm64.inc* and *sys/vp.inc* for how this is done. Some of
+the Lisp primitives are constructed via a boot script that each instance of a
+Lisp class runs on construction, see *class/lisp/boot.inc* for details. The
+compilation and make environment, along with all the compile and make commands
+are created via the Lisp command line tool in *lib/asm/asm.inc*, again this
+auto runs for each instance of the `lisp` command run from the terminal. You
+can extend this with any number of additional files, just place them after the
+lisp command and they will execute after the *lib/asm/asm.inc* file and before
+processing of stdin.
 
 Don't get the idea that due to being coded in interpreted Lisp the assembler
 and compiler will be slow. A fully cleaned system build from source, including
@@ -185,7 +192,7 @@ make
 ### Run
 
 ```
-./run_tui.sh <num_cpus>
+./run_tui.sh [-n num_cpus] [-e] [-b base_cpu]
 ```
 
 Text user interface based fully connected network. Each CPU has links to every
@@ -193,7 +200,7 @@ other CPU. Careful with this as you can end up with a very large number of link
 files and shared memory regions. CPU 0 launches a terminal to the host system.
 
 ```
-./run.sh <num_cpus>
+./run.sh [-n num_cpus] [-e] [-b base_cpu]
 ```
 
 Fully connected network. Each CPU has links to every other CPU. Careful with
@@ -201,35 +208,35 @@ this as you can end up with a very large number of link files and shared memory
 regions. CPU 0 launches a GUI.
 
 ```
-./run_star.sh <num_cpus>
+./run_star.sh [-n num_cpus] [-e] [-b base_cpu]
 ```
 
 Star connected network. Each CPU has a link to the first CPU. CPU 0 launches a
 GUI.
 
 ```
-./run_ring.sh <num_cpus>
+./run_ring.sh [-n num_cpus] [-e] [-b base_cpu]
 ```
 
 Ring connected network. Each CPU has links to the next and previous CPU's. CPU
 0 launches a GUI.
 
 ```
-./run_tree.sh <num_cpus>
+./run_tree.sh [-n num_cpus] [-e] [-b base_cpu]
 ```
 
 Tree connected network. Each CPU has links to its parent CPU and up to two
 child CPU's. CPU 0 launches a GUI.
 
 ```
-./run_mesh.sh <num_cpus on a side>
+./run_mesh.sh [-n num_cpus on a side] [-e] [-b base_cpu]
 ```
 
 Mesh connected network. Each CPU has links to 4 adjacent CPU's. This is similar
 to Transputer meshes. CPU 0 launches a GUI.
 
 ```
-./run_cube.sh <num_cpus on a side>
+./run_cube.sh [-n num_cpus on a side] [-e] [-b base_cpu]
 ```
 
 Cube connected network. Each CPU has links to 6 adjacent CPU's. This is similar

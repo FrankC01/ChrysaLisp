@@ -3,12 +3,15 @@
 In this document we cover the ChrysaLisp conditional statements. The types
 available, plus the tricks you can pull with them.
 
-## if
+Note that true means *not nil* and that is significant. Any value other than
+`nil` is *not nil* !
+
+### if
 
 `(if tst form [else_form])` is a VP native code implemented conditional
-statement. It is a simple way to make a test evaluation and execute a form if
-the test is not `nil` and optionally evaluate a separate form if the test
-evaluates to `nil`.
+statement. It is a simple way to make a test evaluation and evaluate a form if
+the test is true and optionally evaluate a separate form if the test evaluates
+to `nil`.
 
 ```vdu
 (if (= a 0)
@@ -19,26 +22,26 @@ evaluates to `nil`.
 The return value of the `(if ...)` is the value of the form evaluated, or `nil`
 if the form is empty.
 
-## when
+### when
 
 `(when tst body)` is a way to evaluate a body of statements if the test clause
-is not `nil`. Not just a single form but an implicit `(progn ...)`.
+is true. Not just a single form but an implicit `(progn ...)`.
 
 ```vdu
 (when (> z (const (i2n focal_len)))
 	(defq v (vec x y z) w (/ hsw z) h (/ hsh z))
 	(bind '(sx sy sz) (vec-add v (vec-scale (vec-norm
-		(vec-add v (vec-sub (elem +dlist_light_pos+ dlist) v))) r)))
+		(vec-add v (vec-sub (elem +dlist_light_pos dlist) v))) r)))
 	(defq x (+ (* x h) hsw) y (+ (* y h) hsh) r (* r h)
 		sx (+ (* sx h) hsw) sy (+ (* sy h) hsh))
 	(push out (list (vec-n2f x y z) (vec-n2f sx sy) (n2f r)
 		(lighting c z) (lighting (const (vec-i2n 1 1 1)) z))))
 ```
 
-## unless
+### unless
 
 `(unless tst body)` is the opposite to `(when ...)`. It just evaluates the test
-form and executes the body if the result is `nil`.
+form and evaluates the body if the result is `nil`.
 
 ```vdu
 (unless (eql (defq file (elem -2 route)) ".")
@@ -47,10 +50,10 @@ form and executes the body if the result is `nil`.
 	(. root :add_child node))
 ```
 
-## while
+### while
 
 `(while tst body)` is a VP native code implemented conditional statement. It is
-like `(when ...)` but it will loop until the tst clause fails.
+like `(when ...)` but it will loop while the test clause is true.
 
 ```vdu
 (while (< b e)
@@ -58,27 +61,26 @@ like `(when ...)` but it will loop until the tst clause fails.
 	(setq b (+ b s)))
 ```
 
-## until
+### until
 
-`(until tst body)` is like `(unless ...)` but like `(while ...)` will loop
-until the test clause succeeds.
+`(until tst body)` is like `(unless ...)` but will loop until the test clause
+is true.
 
 ```vdu
 (until (def? :is_window window)
 	(setq window (penv window)))
 ```
 
-## cond
+### cond
 
-`(cond (tst [...]) (tst [...]))` is a VP native code implemented conditional
-statement. It takes a list of test forms and following bodies to execute if
-that test form evaluates as not `nil`. Note this says *not nil* and that is
-significant. Any value other than `nil` is *not nil* !
+`(cond [(tst [body])] ...)` is a VP native code implemented conditional
+statement. It takes a list of test forms and following bodies to evaluate if
+that test form evaluates as true.
 
-Only the first test that evaluates as not `nil` has its body executed. Also if
-the body is empty the none `nil` value returned by the test is the returned
-value from the `(cond ...)` statement ! That can be very useful. If no test
-clause proves to be not `nil` then `nil` is returned from the `(cond ...)`.
+Only the first test that evaluates as true has its body evaluated. Also if the
+body is empty the true value returned by the test is the returned value from
+the `(cond ...)` statement ! That can be very useful. If no test clause proves
+to be true then `nil` is returned from the `(cond ...)`.
 
 So let's see a few examples:
 
@@ -92,8 +94,7 @@ So let's see a few examples:
 		(print "b is 0"))
 	((= b 1)
 		(print "b is 1"))
-	(t
-		(print "no test is none nil!")))
+	(t	(print "no test is none nil!")))
 ```
 
 Here the tests using symbol `a` have precedence over those with symbol `b` and
@@ -105,7 +106,7 @@ the final clause will happen if no other clause.
 	(t))
 ```
 
-Here if `a` is not `nil` then return `nil` else return `t`. So a simple logical not.
+Here if `a` is true then return `nil` else return `t`. So a simple logical not.
 
 It is possible to evaluate a test and bind the result to a symbol that is then
 used in the remaining clauses ! These are not static tests based on the value
@@ -113,26 +114,25 @@ of the symbols used at the entry to the `(cond ...)` !
 
 ```vdu
 (cond
-	((= (defq id (get-long msg ev_msg_target_id)) +event_close+)
+	((= (defq id (getf msg +ev_msg_target_id)) +event_close)
 		;close app
 		)
-	((= id +event_min+)
+	((= id +event_min)
 		;minimize app
 		)
-	((= id +event_max+)
+	((= id +event_max)
 		;maximize app
 		)
-	(t
-		;ui event for window....
+	(t	;ui event for window....
 		(. mywindow :event msg)))
 ```
 
-## case
+### case
 
-`(case key (v0 body) (v1 body) ... (t ...))` is a variant of cond that acts
-like a fast switch. The `key` form is evaluated and must evaluate to a symbol
-or key symbol. A jump is then made to the matching body clause, or if no match,
-the optional `t` clause.
+`(case key (s0 body) ((s1 s2) body) ... (t ...))` is a variant of cond that
+acts like a fast switch. The `key` form is evaluated and must evaluate to a
+symbol or key symbol. A jump is then made to the matching body clause, or if no
+match, the optional `t` clause.
 
 ```vdu
 (case state
@@ -164,27 +164,27 @@ the optional `t` clause.
 		(push col_list (get :ink_text this))))
 ```
 
-# Tricks with logical statements
+## Tricks with logical statements
 
 `(and ...)` and `(or ...)` can be use as conditional operations as they are
-implemented as a ladder of `(if ..)` by their respective macros.
+implemented as if a ladder of `(if ..)` by their respective macros.
 
-## and
+### and
 
 For the `(and ...)` the forms will be evaluated one by one and will exit if
-that clause proves to be false. Therefore you can use it to execute a form only
+that clause evaluates as `nil`. Therefore you can use it to execute a form only
 if all the preceding test clauses prove to be true !
 
 ```vdu
-(and (= (get-long msg (const ev_msg_type)) (const ev_type_mouse))
-		(/= 0 (get-int msg (const ev_msg_mouse_buttons)))
-	(setq mouse_down (get-int msg (const ev_msg_mouse_buttons))))
+(and (= (getf msg +ev_msg_type) +ev_type_mouse)
+	(/= 0 (getf msg +ev_msg_mouse_buttons))
+	(setq mouse_down (getf msg +ev_msg_mouse_buttons)))
 ```
 
 In this example the mouse_down symbol is only set if the previous 2 clauses
-prove to be not `nil`.
+prove to be true.
 
-## or
+### or
 
 For the `(or ...)` the forms will be evaluated one by one and will exit if that
 clause proves to be true. Therefore you can use it to execute a form only if

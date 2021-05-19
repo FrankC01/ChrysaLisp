@@ -1,5 +1,5 @@
 (import "sys/lisp.inc")
-(import "lib/pipe/pipe.inc")
+(import "lib/task/pipe.inc")
 (print)
 (print "ChrysaLisp Installer v0.1")
 (print "Building platform native boot image.")

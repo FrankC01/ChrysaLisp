@@ -107,14 +107,14 @@ other processes via a call to `'sys_mail :enquire` with the given name. A
 service entry can be removed with the `'sys_mail :forget` function.
 
 The system maintains a directory of these service names and the corresponding
-process `net_id`s. An example service is the current GUI `DEBUG_SERVICE`
+process `net_id`. An example service is the current GUI `DEBUG_SERVICE`
 application `apps/debug/app.lisp`.
 
-### Example
+### VP example
 
-This is a network monitoring application child process `apps/netmon/child.vp`.
-The child process simply waits for a command message from the parent and either
-exits or returns a message containing task and memory usage information.
+This is a network monitoring application child process. The child process
+simply waits for a command message from the parent and either exits or returns
+a message containing task and memory usage information.
 
 `'sys_mail :mymail` is just a convenience function to read mail from the
 current tasks main mailbox.
@@ -123,15 +123,15 @@ current tasks main mailbox.
 (include "sys/func.inc")
 (include "sys/kernel/class.inc")
 
-(def-struct 'sample_reply)
-	(struct 'node_id 'node_id)
-	(uint 'task_count 'mem_used)
-(def-struct-end)
+(def-struct reply 0
+	(struct node_id node_id_size)
+	(uint task_count mem_used))
 
 (def-func 'apps/netmon/child)
 	;monitor task
 
-	(ptr 'msg 'data 'reply 'rdata)
+	(def-vars
+		(ptr msg data reply rdata))
 
 	(push-scope)
 	(loop-start)
@@ -140,15 +140,15 @@ current tasks main mailbox.
 		(breakifnot {msg->msg_frag_length})
 
 		;sample reply
-		(call 'sys_mail :alloc {sample_reply_size} {reply, rdata})
+		(call 'sys_mail :alloc {reply_size} {reply, rdata})
 		(assign {data->net_id_mbox_id} {reply->msg_dest.net_id_mbox_id})
 		(assign {data->net_id_node_id.node_id_node1} {reply->msg_dest.net_id_node_id.node_id_node1})
 		(assign {data->net_id_node_id.node_id_node2} {reply->msg_dest.net_id_node_id.node_id_node2})
 		(call 'sys_kernel :id nil {
-			rdata->sample_reply_node_id.node_id_node1,
-			rdata->sample_reply_node_id.node_id_node2})
-		(call 'sys_task :count nil {rdata->sample_reply_task_count})
-		(call 'sys_mem :used nil {rdata->sample_reply_mem_used})
+			rdata->reply_node_id.node_id_node1,
+			rdata->reply_node_id.node_id_node2})
+		(call 'sys_task :count nil {rdata->reply_task_count})
+		(call 'sys_mem :used nil {rdata->reply_mem_used})
 		(call 'sys_mail :send {reply})
 		(call 'sys_mail :free {msg})
 
@@ -183,3 +183,68 @@ contain a single 64bit value of the current time. This can be used for
 animation callback purposes or in combination with `'sys_mail :select` to
 provided timed mailbox read functionality. If the time delay given is 0 the
 call will remove the entry from the timer list.
+
+### Lisp example
+
+In order to ease simple message construction sending and receiving, you can use
+the `(structure)` macros in conjunction with raw string allocation and the
+field access macros `(getf) (setf) (setf->)` !
+
+Let's look at the Netmon application as an example. This application creates a
+child task on each network node by use of the `(Global)` class and polls each
+child to request node specific information.
+
+The application defines a polling message structure in the
+`apps/netmon/app.inc` file.
+
+```file
+apps/netmon/app.inc
+```
+
+Looking at the parent task `apps/netmon/app.lisp` it then sends out, at regular
+intervals, a polling message to each child task, that consists of the parents
+reply mailbox. Note that the `(elem +select_reply select)` will just be the
+mailbox id string returned from its earlier call to `(mail-alloc-mbox)`.
+
+```vdu
+...
+(defun poll (key val)
+	; (poll key val)
+	;function called to poll entry
+	(unless (eql (defq child (. val :find :child)) (const (pad "" +net_id_size)))
+		(mail-send child (elem +select_reply select))))
+...
+```
+
+The child task `apps/netmon/child.lisp`, within its event loop, receives and
+replies to the parent request by using `(str-alloc)` and `(setf->)` to build
+the reply message.
+
+```vdu
+...
+	(bind '(task_count mem_used) (kernel-stats))
+	(mail-send msg (setf-> (str-alloc +reply_size)
+		(+reply_node (slice +long_size -1 (task-mailbox)))
+		(+reply_task_count task_count)
+		(+reply_mem_used mem_used)))
+...
+```
+
+On receipt of the child's reply the parent unpacks the response using `(getf)`.
+
+```vdu
+...
+	;child poll response
+	(when (defq val (. global_tasks :find (getf msg +reply_node)))
+		(defq task_val (getf msg +reply_task_count)
+			memory_val (getf msg +reply_mem_used)))
+...
+```
+
+Here is the full child task source so you can see how it creates multiple
+mailboxes and uses `(mail-select) (mail-timeout)` calls to wait for a parent
+polling request or time out and exit if orphaned.
+
+```file
+apps/netmon/child.lisp
+```

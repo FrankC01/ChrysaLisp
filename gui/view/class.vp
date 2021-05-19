@@ -7,7 +7,6 @@
 (include "class/lisp/class.inc")
 (include "class/func/class.inc")
 (include "sys/task/class.inc")
-(include "gui/view/lisp.inc")
 (include "sys/statics/class.inc")
 
 (gen-create 'view)
@@ -34,7 +33,7 @@
 		(assign '((r1 statics_gui_next_id)) '(r2))
 		(vp-sub-cr 1 r2)
 		(assign '(r2 r2) '((r1 statics_gui_next_id) (r0 view_id)))
-		(vp-cpy-cr +view_flag_solid+ r1)
+		(vp-cpy-cr view_flag_solid r1)
 		(assign '(r1 (& r0 view_list)) '((r0 view_flags) r1))
 		(lh-init r1 r2)
 	(endif)
@@ -211,7 +210,7 @@
 		(vpif '(r1 /= 0))
 			(vp-cpy-rr r0 r5)
 			(call 'view :add_front '(r4 r0))
-			(jump 'view :set_flags '(r5 +view_flag_dirty_all+ +view_flag_dirty_all+))
+			(jump 'view :set_flags '(r5 view_flag_dirty_all view_flag_dirty_all))
 		(endif)
 	(endif)
 	(vp-ret)
@@ -237,7 +236,7 @@
 			(breakif '(r3 = 0))
 			(vp-lea-i r1 (neg view_node) r4)
 			(assign '((r4 view_flags)) '(r4))
-			(vp-and-cr +view_flag_at_back+ r4)
+			(vp-and-cr view_flag_at_back r4)
 		(loop-until '(r4 /= 0))
 		(vpif '(r1 /= r2))
 			;no, so move to front of back item
@@ -271,9 +270,8 @@
 		;trashes
 		;...
 
-	(def-struct 'local)
-		(ptr 'this 'data 'callback)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this data callback))
 
 	(vp-alloc local_size)
 	(assign '(r0 r1 r2) '((rsp local_this) (rsp local_data) (rsp local_callback)))
@@ -318,9 +316,8 @@
 		;trashes
 		;...
 
-	(def-struct 'local)
-		(ptr 'this 'data 'down 'up)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this data down up))
 
 	(vp-alloc local_size)
 	(assign '(r0 r1 r2 r3 r0) '((rsp local_this) (rsp local_data) (rsp local_down) (rsp local_up) r1))
@@ -384,9 +381,8 @@
 		;trashes
 		;...
 
-	(def-struct 'local)
-		(ptr 'this 'data 'down 'up)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this data down up))
 
 	(vp-alloc local_size)
 	(assign '(r0 r1 r2 r3 r0) '((rsp local_this) (rsp local_data) (rsp local_down) (rsp local_up) r1))
@@ -438,9 +434,8 @@
 	;trashes
 	;r1-r14
 
-	(def-struct 'local)
-		(ptr 'this 'args)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this args))
 
 	(vp-alloc local_size)
 	(entry 'view :draw '((rsp local_this)))
@@ -449,10 +444,10 @@
 	(call 'view :find '((rsp local_this) r1) '(_ r2 _))
 	(vpif '(r2 /= 0))
 		(call 'sym :get_static_sym '(static_sym_draw) '(r1))
-		(call 'view :find '((r2 +ptr_size+) r1) '(_ r1 _))
+		(call 'view :find '((r2 +ptr_size) r1) '(_ r1 _))
 		(vpif '(r1 /= 0))
 			;jump to VP draw method ?
-			(assign '((r1 +ptr_size+)) '(r1))
+			(assign '((r1 +ptr_size)) '(r1))
 			(f-bind 'func :vtable r0)
 			(assign '((r1 obj_vtable)) '(r2))
 			(vpif '(r0 = r2))
@@ -495,10 +490,9 @@
 	;trashes
 	;r1-r3
 
-	(def-struct 'local)
-		(ptr 'this 'view)
-		(ulong 'id)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this view)
+		(ulong id))
 
 	;save inputs
 	(vp-alloc local_size)
@@ -551,7 +545,7 @@
 			(vpif '(r8 < r1))
 				;hit ?
 				(assign '((r0 view_flags)) '(r1))
-				(vp-and-cr +view_flag_solid+ r1)
+				(vp-and-cr view_flag_solid r1)
 				(vp-ret)
 			(endif)
 		(endif)
@@ -574,9 +568,8 @@
 	;trashes
 	;r1-r3
 
-	(def-struct 'local)
-		(ptr 'this 'hit)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this hit))
 
 	;save inputs
 	(vp-alloc local_size)
@@ -668,7 +661,7 @@
 	(vp-and-rr r2 r3)
 	(vp-or-rr r3 r1)
 	(assign '(r1 r1 (@ sys/statics/statics)) '(r3 (r0 view_flags) r2))
-	(vp-and-cr +view_flag_dirty_all+ r3)
+	(vp-and-cr view_flag_dirty_all r3)
 	(assign '(r3) '((r2 statics_gui_dirty_flag)))
 
 	(exit 'view :set_flags '(r0 r1))

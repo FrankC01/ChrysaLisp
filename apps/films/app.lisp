@@ -1,11 +1,13 @@
-;imports
 (import "sys/lisp.inc")
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 
-(structure '+event 0
-	(byte 'close+)
-	(byte 'prev+ 'next+))
+(enums +select 0
+	(enum main timer))
+
+(enums +event 0
+	(enum close)
+	(enum prev next))
 
 (defun all-films (p)
 	(defq out (list))
@@ -17,13 +19,13 @@
 	select (list (task-mailbox) (mail-alloc-mbox)) rate (/ 1000000 30))
 
 (ui-window mywindow ()
-	(ui-title-bar window_title "" (0xea19) +event_close+)
+	(ui-title-bar window_title "" (0xea19) +event_close)
 	(ui-tool-bar _ ()
-		(ui-buttons (0xe91d 0xe91e) +event_prev+))
-	(ui-scroll image_scroll (logior +scroll_flag_vertical+ +scroll_flag_horizontal+)))
+		(ui-buttons (0xe91d 0xe91e) +event_prev))
+	(ui-scroll image_scroll (logior +scroll_flag_vertical +scroll_flag_horizontal)))
 
 (defun win-refresh (_)
-	(bind '(w h) (. (setq canvas (Canvas-from-file (elem (setq index _) films) +load_flag_film+)) :pref_size))
+	(bind '(w h) (. (setq canvas (Canvas-from-file (elem (setq index _) films) +load_flag_film)) :pref_size))
 	(def image_scroll :min_width w :min_height h)
 	(def window_title :text (elem _ films))
 	(. image_scroll :add_child canvas)
@@ -35,20 +37,21 @@
 (defun main ()
 	(bind '(x y w h) (apply view-locate (. (win-refresh index) :get_size)))
 	(gui-add (. mywindow :change x y w h))
-	(mail-timeout (elem -2 select) rate)
+	(mail-timeout (elem +select_timer select) rate)
 	(while id
 		(defq msg (mail-read (elem (defq idx (mail-select select)) select)))
 		(cond
-			((= idx 0)
+			((= idx +select_main)
 				;main mailbox
 				(cond
-					((= (setq id (get-long msg ev_msg_target_id)) +event_close+)
+					((= (setq id (getf msg +ev_msg_target_id)) +event_close)
 						(setq id nil))
-					((<= +event_prev+ id +event_next+)
-						(win-refresh (% (+ index (dec (* 2 (- id +event_prev+))) (length films)) (length films))))
+					((<= +event_prev id +event_next)
+						(win-refresh (% (+ index (dec (* 2 (- id +event_prev))) (length films)) (length films))))
 					(t (. mywindow :event msg))))
-			(t	;timer event)
-				(mail-timeout (elem -2 select) rate)
+			((= idx +select_timer)
+				;timer event)
+				(mail-timeout (elem +select_timer select) rate)
 				(.-> canvas :next_frame :swap))))
 	;close window
 	(mail-free-mbox (pop select))

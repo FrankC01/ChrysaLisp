@@ -1,11 +1,10 @@
-;imports
 (import "sys/lisp.inc")
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 
-(structure '+event 0
-	(byte 'close+)
-	(byte 'prev+ 'next+))
+(enums +event 0
+	(enum close)
+	(enum prev next))
 
 (defun all-images (p)
 	(defq out (list))
@@ -17,10 +16,10 @@
 (defq images (all-images "apps/images/") index (some (# (if (eql "apps/images/logo.cpm" %0) _)) images))
 
 (ui-window mywindow ()
-	(ui-title-bar window_title "" (0xea19) +event_close+)
+	(ui-title-bar window_title "" (0xea19) +event_close)
 	(ui-tool-bar _ ()
-		(ui-buttons (0xe91d 0xe91e) +event_prev+))
-	(ui-scroll image_scroll (logior +scroll_flag_vertical+ +scroll_flag_horizontal+)))
+		(ui-buttons (0xe91d 0xe91e) +event_prev))
+	(ui-scroll image_scroll (logior +scroll_flag_vertical +scroll_flag_horizontal)))
 
 (defun win-refresh (_)
 	(bind '(w h) (. (defq canvas (Canvas-from-file (elem (setq index _) images) 0)) :pref_size))
@@ -36,9 +35,9 @@
 	(bind '(x y w h) (apply view-locate (. (win-refresh index) :get_size)))
 	(gui-add (. mywindow :change x y w h))
 	(while (cond
-		((= (defq id (get-long (defq msg (mail-read (task-mailbox))) ev_msg_target_id)) +event_close+)
+		((= (defq id (getf (defq msg (mail-read (task-mailbox))) +ev_msg_target_id)) +event_close)
 			nil)
-		((<= +event_prev+ id +event_next+)
-			(win-refresh (% (+ index (dec (* 2 (- id +event_prev+))) (length images)) (length images))))
+		((<= +event_prev id +event_next)
+			(win-refresh (% (+ index (dec (* 2 (- id +event_prev))) (length images)) (length images))))
 		(t (. mywindow :event msg))))
 	(. mywindow :hide))

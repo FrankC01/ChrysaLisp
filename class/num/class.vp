@@ -2,12 +2,52 @@
 (include "sys/math/class.inc")
 (include "class/num/class.inc")
 (include "class/list/class.inc")
+(include "class/hset/class.inc")
 (include "class/sym/class.inc")
 (include "class/stream/class.inc")
+(include "sys/statics/class.inc")
 
 (gen-create 'num)
 (gen-vtable 'num)
 (gen-type 'num)
+
+(def-method 'num :intern)
+	;inputs
+	;r0 = num object (ptr)
+	;outputs
+	;r0 = interned num object (ptr)
+	;trashes
+	;r0-r14
+
+	(entry 'num :intern '(r0))
+
+	(vp-push r0)
+	(fn-bind 'sys/statics/statics r0)
+	(assign '((r0 statics_num_intern)) '(r0))
+	(vpif '(r0 = 0))
+		(call 'hset :create `(($ cmp_num) num_num_buckets) '(r0))
+		(fn-bind 'sys/statics/statics r1)
+		(assign '(r0) '((r1 statics_num_intern)))
+	(endif)
+	(call 'hset :insert '(r0 (rsp 0)) '(_ r1 _))
+	(call 'obj :ref '((r1 0)) '(r3))
+	(vp-pop r0)
+	(call 'obj :deref '(r0))
+
+	(exit 'num :intern '(r3))
+	(vp-ret)
+
+(vp-label 'cmp_num)
+	(vp-cpy-rr r1 r2)
+	(assign '((r0 obj_vtable) (r1 obj_vtable)) '(r3 r1))
+	(vp-sub-rr r3 r1)
+	(vpif '(r1 = 0))
+		(assign '((r0 num_value) (r2 num_value)) '(r3 r1))
+		(vp-sub-rr r3 r1)
+	(endif)
+	(vp-ret)
+
+(def-func-end)
 
 (def-method 'num :hash)
 	;inputs
@@ -33,9 +73,8 @@
 	;trashes
 	;r1-r14
 
-	(def-struct 'local)
-		(ptr 'this 'stream 'tmp)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this stream tmp))
 
 	(vp-alloc local_size)
 	(entry 'num :print '(r0 r1))
@@ -57,11 +96,11 @@
 	(vp-push r0)
 	(class/array/get_both r1 r1 r2)
 	(vp-cpy-ir r1 0 r0)
-	(vp-add-cr +ptr_size+ r1)
+	(vp-add-cr +ptr_size r1)
 	(assign '((r0 num_value)) '(r0))
 	(loop-start)
 		(vp-cpy-ir r1 0 r4)
-		(vp-add-cr +ptr_size+ r1)
+		(vp-add-cr +ptr_size r1)
 		(assign '((r4 num_value)) '(r3))
 		(exec p)
 	(loop-until '(r1 = r2))
@@ -120,11 +159,11 @@
 	(entry 'num _ `(,this ,args))
 	(class/array/get_both args iter_begin iter_end)
 	(vp-cpy-ir iter_begin 0 args)
-	(vp-add-cr +ptr_size+ iter_begin)
+	(vp-add-cr +ptr_size iter_begin)
 	(assign `((,args num_value)) `(,val))
 	(loop-start)
 		(vp-cpy-ir iter_begin 0 obj)
-		(vp-add-cr +ptr_size+ iter_begin)
+		(vp-add-cr +ptr_size iter_begin)
 		(assign `((,obj num_value)) `(,new_val))
 		(exec p)
 	(loop-until (list iter_begin '= iter_end))
@@ -175,11 +214,11 @@
 	(vp-push r0)
 	(class/array/get_both r1 r1 r4)
 	(vp-cpy-ir r1 0 r0)
-	(vp-add-cr +ptr_size+ r1)
+	(vp-add-cr +ptr_size r1)
 	(assign '((r0 num_value)) '(r0))
 	(loop-start)
 		(vp-cpy-ir r1 0 r5)
-		(vp-add-cr +ptr_size+ r1)
+		(vp-add-cr +ptr_size r1)
 		(assign '((r5 num_value)) '(r3))
 	(errorcases
 		(gotoif '(r3 = 0) 'error))
@@ -326,11 +365,11 @@
 	(vp-push r0)
 	(class/array/get_both r1 r1 r2)
 	(vp-cpy-ir r1 0 r0)
-	(vp-add-cr +ptr_size+ r1)
+	(vp-add-cr +ptr_size r1)
 	(assign '((r0 num_value)) '(r0))
 	(loop-start)
 		(vp-cpy-ir r1 0 r3)
-		(vp-add-cr +ptr_size+ r1)
+		(vp-add-cr +ptr_size r1)
 		(assign '((r3 num_value)) '(r3))
 		(exec p)
 	(loop-until '(r1 = r2))
@@ -439,14 +478,14 @@
 
 	(vp-push r0)
 	(class/array/get_both r1 r1 r2)
-	(vp-lea-i r2 (neg +ptr_size+) r5)
+	(vp-lea-i r2 (neg +ptr_size) r5)
 	(loop-start)
 		(vp-cpy-ir r1 0 r0)
-		(vp-add-cr +ptr_size+ r1)
+		(vp-add-cr +ptr_size r1)
 		(assign '((r0 num_value) r1) '(r0 r4))
 		(loop-start)
 			(vp-cpy-ir r4 0 r3)
-			(vp-add-cr +ptr_size+ r4)
+			(vp-add-cr +ptr_size r4)
 			(assign '((r3 num_value)) '(r3))
 			(gotoif '(r3 = r0) 'fail)
 		(loop-until '(r4 = r2))

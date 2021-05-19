@@ -2,33 +2,33 @@
 ; VP Assembler
 ;;;;;;;;;;;;;;
 
-;imports
 (import "class/lisp.inc")
 (import "lib/task/farm.inc")
 
 (defun compile (files &optional *abi* *cpu* num_child)
 	(unless (list? files) (setq files (list files)))
-	(setd *abi* (abi) *cpu* (cpu) num_child (max 1 (/ (* (defq next_node (length (mail-nodes))) 80) 100)))
+	(defq nxt_node (length (mail-nodes)))
+	(setd *abi* (abi) *cpu* (cpu) num_child (max 1 (/ (* nxt_node 80) 100)))
 	(setq num_child (min num_child (length (shuffle files))))
-	(structure '+select 0
-		(byte 'task+ 'reply+ 'timer+))
+	(enums +select 0
+		(enum task reply timer))
 	(defun dispatch-job (key val)
 		;send another job to child
 		(cond
 			((defq job (pop jobs))
 				(.-> val (:insert :job job) (:insert :timestamp (pii-time)))
 				(mail-send (. val :find :child) (cat
-					(char key +long_size+) (elem +select_reply+ select) job)))
+					(char key +long_size) (elem +select_reply select) job)))
 			(t	;no jobs in que
 				(.-> val (:erase :job) (:erase :timestamp)))))
 	(defun create (key val nodes)
 		; (create key val nodes)
 		;function called when entry is created
 		(if (= 0 (length nodes))
-			(setq nodes (list (slice +long_size+ -1 (task-mailbox)))))
-		(open-task "class/lisp/compile.lisp"
-			(elem (setq next_node (% (inc next_node) (length nodes))) nodes)
-			kn_call_child key (elem +select_task+ select)))
+			(setq nodes (list (slice +long_size -1 (task-mailbox)))))
+		(open-task "lib/asm/asm.lisp"
+			(elem (setq nxt_node (% (inc nxt_node) (length nodes))) nodes)
+			+kn_call_child key (elem +select_task select)))
 	(defun destroy (key val)
 		; (destroy key val)
 		;function called when entry is destroyed
@@ -38,24 +38,24 @@
 			(push jobs job)
 			(.-> val (:erase :job) (:erase :timestamp))))
 	(when (/= num_child 0)
-		(defq timer_rate (/ 1000000 1) working t jobs (list) errors (list) next_node (random next_node)
+		(defq timer_rate (/ 1000000 1) working t jobs (list) errors (list) nxt_node (random nxt_node)
 			retry_timeout (if (starts-with "obj/vp64" (load-path)) 100000000 10000000)
 			select (list (mail-alloc-mbox) (mail-alloc-mbox) (mail-alloc-mbox)))
 		(times num_child (push jobs (list)))
 		(setq jobs (map (# (str (list %0 *abi* *cpu* *debug_mode* *debug_emit* *debug_inst*)))
 			(unzip files jobs)))
 		(defq farm (Farm create destroy num_child))
-		(mail-timeout (elem +select_timer+ select) timer_rate)
+		(mail-timeout (elem +select_timer select) timer_rate)
 		(while working
 			(defq msg (mail-read (elem (defq idx (mail-select select)) select)))
 			(cond
-				((= idx +select_task+)
+				((= idx +select_task)
 					;child launch responce
-					(defq key (get-long msg 0) child (slice +long_size+ (const (+ +long_size+ net_id_size)) msg))
+					(defq key (getf msg +kn_msg_key) child (getf msg +kn_msg_reply_id))
 					(when (defq val (. farm :find key))
 						(. val :insert :child child)
 						(dispatch-job key val)))
-				((= idx +select_reply+)
+				((= idx +select_reply)
 					;child worker responce
 					(defq key (str-to-num (pop (defq msg (split msg (ascii-char 10))))))
 					(when (defq val (. farm :find key))
@@ -68,7 +68,7 @@
 						(. farm :each (lambda (key val)
 							(setq working (or working (. val :find :job)))))))
 				(t	;timer event
-					(mail-timeout (elem +select_timer+ select) timer_rate)
+					(mail-timeout (elem +select_timer select) timer_rate)
 					(. farm :refresh retry_timeout))))
 		(. farm :close)
 		(each mail-free-mbox select)
@@ -89,13 +89,14 @@
 	;don't include "." folders
 	(defq stack (list root) files (list))
 	(while (setq root (pop stack))
-		(each! 0 -1 (lambda (file type)
-			(unless (starts-with "." file)
-				(if (eql type "4")
-					(push stack (cat root "/" file))
-					(if (ends-with ext file)
-						(push files (cat root "/" file))))))
-			(unzip (split (pii-dirlist root) ",") (list (list) (list)))))
+		(unless (starts-with "./obj" root)
+			(each! 0 -1 (lambda (file type)
+				(unless (starts-with "." file)
+					(if (eql type "4")
+						(push stack (cat root "/" file))
+						(if (ends-with ext file)
+							(push files (cat root "/" file))))))
+				(unzip (split (pii-dirlist root) ",") (list (list) (list))))))
 	files)
 
 (defun all-vp-files ()
@@ -104,7 +105,7 @@
 		(filter (# (not (starts-with "./apps/" %0))) (all-files "." ".vp"))))
 
 (defun all-class-files ()
-	;filter to only the class.inc files, stri off the leading "./"
+	;filter to only the class.inc files, strip off the leading "./"
 	(map (# (slice 2 -1 %0)) (all-files "." "class.inc")))
 
 (defun make-info (_)
@@ -212,12 +213,12 @@
 					(+ (elem (find-rev %0 ns) nso) so)) (+ u (* _ 8))) 8)) (elem 2 %0)) "")))) b)
 		;build list of all sections of boot image
 		;concatenate all sections and write out
-		(defq stream (file-stream (func-obj 'sys/boot_image) file_open_write)
+		(defq stream (file-stream (func-obj 'sys/boot_image) +file_open_write)
 			f (reduce (# (push %0 (cat %1 (ascii-char 0)))) ns
 				(push (reduce (# (push %0 (elem 0 %1) (elem 1 %1))) b (list)) z))
 			l (reduce (# (+ %0 (length %1))) f 0))
 		;save size in boot image
-		(elem-set 0 f (cat (char l +long_size+) (slice +long_size+ -1 (elem 0 f))))
+		(elem-set 0 f (cat (char l +long_size) (slice +long_size -1 (elem 0 f))))
 		(each (# (write stream %0)) f)
 		(print "-> " (func-obj 'sys/boot_image) " (" l ")") nil)))
 
@@ -255,6 +256,7 @@
 	(make files 'AMD64 'x86_64)
 	(make files 'WIN64 'x86_64)
 	(make files 'ARM64 'aarch64)
+	(defq *debug_mode* 0)
 	(make files 'VP64 'vp64))
 
 (defun make-all-platforms ()
@@ -262,6 +264,7 @@
 	(make-all 'AMD64 'x86_64 files)
 	(make-all 'WIN64 'x86_64 files)
 	(make-all 'ARM64 'aarch64 files)
+	(defq *debug_mode* 0)
 	(make-all 'VP64 'vp64 files))
 
 (defun remake-platforms ()
@@ -269,6 +272,7 @@
 	(remake 'AMD64 'x86_64 files)
 	(remake 'WIN64 'x86_64 files)
 	(remake 'ARM64 'aarch64 files)
+	(defq *debug_mode* 0)
 	(remake 'VP64 'vp64 files))
 
 (defun remake-all-platforms ()
@@ -276,6 +280,7 @@
 	(remake-all 'AMD64 'x86_64 files)
 	(remake-all 'WIN64 'x86_64 files)
 	(remake-all 'ARM64 'aarch64 files)
+	(defq *debug_mode* 0)
 	(remake-all 'VP64 'vp64 files))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -299,5 +304,5 @@
 
 (defun compile-test (&optional *abi* *cpu*)
 	(setd *abi* (abi) *cpu* (cpu))
-	(each (# (compile %0 *abi* *cpu*)) (defq f (all-vp-files)))
-	(compile f *abi* *cpu* 1))
+	(each (# (compile %0 *abi* *cpu*)) (defq files (all-vp-files)))
+	(compile (cat (all-class-files) files) *abi* *cpu* 1))

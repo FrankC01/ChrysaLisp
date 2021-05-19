@@ -7,7 +7,6 @@
 (include "class/list/class.inc")
 (include "gui/region/class.inc")
 (include "gui/view/class.inc")
-(include "gui/view/lisp.inc")
 (include "sys/statics/class.inc")
 
 (def-method 'gui :statics_init)
@@ -26,12 +25,11 @@
 	;r0 = lisp object pointer (ptr)
 	;r1 = lisp args list (ptr)
 
-	(def-struct 'local)
-		(ptr 'statics 'this)
-		(ulong 'mouse_id 'key_id)
-		(uint 'mouse_buttons)
-		(ubyte 'quit)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr statics this)
+		(ulong mouse_id key_id)
+		(uint mouse_buttons)
+		(ubyte quit))
 
 	;init vars
 	(vp-alloc local_size)
@@ -73,10 +71,11 @@
 	;inputs
 	;r0 = user data
 
-	(ptr 'user 'msg 'data 'view 'old_stack)
-	(struct 'owner_id 'net_id)
-	(int 'flag)
-	(struct 'event 256)
+	(def-vars
+		(ptr user msg data view old_stack)
+		(struct owner_id net_id_size)
+		(int flag)
+		(struct event 256))
 
 	(vp-cpy-rr rsp r1)
 	(push-scope)
@@ -213,7 +212,8 @@
 			(assign {owner_id.net_id_node_id.node_id_node2} {msg->msg_dest.net_id_node_id.node_id_node2})
 			(assign {event.sdl_keyboard_event_keysym.sdl_keysym_scancode} {data->ev_msg_key_keycode})
 			(call 'cook_key {event.sdl_keyboard_event_keysym.sdl_keysym_sym,
-				event.sdl_keyboard_event_keysym.sdl_keysym_mod} {data->ev_msg_key_key})
+					event.sdl_keyboard_event_keysym.sdl_keysym_mod}
+				{data->ev_msg_key_key, data->ev_msg_key_mod})
 			(call 'sys_mail :send {msg})
 			(break)
 		(vpcase {event.sdl_common_event_type = SDL_WINDOWEVENT})
@@ -229,10 +229,10 @@
 				;change backdrop size, send gui event to all top level views
 				(call 'view :set_bounds '{user->local_statics->statics_gui_screen, 0, 0, event.sdl_window_event_data1, event.sdl_window_event_data2})
 				(call 'view :forward {user->local_statics->statics_gui_screen, user, $send_gui_event})
-				(call 'view :set_flags '{user->local_statics->statics_gui_screen, +view_flag_dirty_all+, +view_flag_dirty_all+})
+				(call 'view :set_flags '{user->local_statics->statics_gui_screen, view_flag_dirty_all, view_flag_dirty_all})
 				(break)
 			(vpcase {event.sdl_window_event_event = SDL_WINDOWEVENT_RESTORED})
-				(call 'view :set_flags '{user->local_statics->statics_gui_screen, +view_flag_dirty_all+, +view_flag_dirty_all+})
+				(call 'view :set_flags '{user->local_statics->statics_gui_screen, view_flag_dirty_all, view_flag_dirty_all})
 				(break)
 			(endswitch)
 		;;	(break)
@@ -250,7 +250,8 @@
 	;inputs
 	;r0 = user data
 
-	(ptr 'user 'old_stack 'iter_begin 'iter_end)
+	(def-vars
+		(ptr user old_stack iter_begin iter_end))
 
 	(vp-cpy-rr rsp r1)
 	(push-scope)
@@ -271,10 +272,10 @@
 
 	;free old regions and deinit region heap
 	(assign {&user->local_statics->statics_gui_old_regions} {iter_begin})
-	(assign {&iter_begin[num_old_regions * +ptr_size+]} {iter_end})
+	(assign {&iter_begin[num_old_regions * +ptr_size]} {iter_end})
 	(loop-while {iter_begin /= iter_end})
 		(call 'region :free {user->local_statics->statics_gui_rect_heap, iter_begin})
-		(assign {iter_begin + +ptr_size+} {iter_end})
+		(assign {iter_begin + +ptr_size} {iter_end})
 	(loop-end)
 	(call 'sys_heap :deinit {user->local_statics->statics_gui_rect_heap})
 
@@ -284,8 +285,9 @@
 
 (vp-label 'send_gui_event)
 	;send gui event
-	(ptr 'this 'user 'msg 'data)
-	(struct 'owner_id 'net_id)
+	(def-vars
+		(ptr this user msg data)
+		(struct owner_id net_id_size))
 
 	(push-scope)
 	(entry {this, user})
@@ -316,26 +318,28 @@
 	;r1 = mod
 	;outputs
 	;r0 = cooked key
+	;r1 = mod
 	;trashes
-	;r0-r2
+	;r0-r3
 
 	(entry '(r0 r1))
 
-	(vp-and-cr 0x2003 r1)
-	(vpif '(r1 /= 0) 'exit)
+	(vp-cpy-rr r1 r2)
+	(vp-and-cr 0x2003 r2)
+	(vpif '(r2 /= 0) 'exit)
 		(assign '(($ shifted)) '(r2))
 		(loop-start)
-			(vp-cpy-ir-ub r2 0 r1)
-			(breakif '(r1 = 0))
-			(vpif '(r1 = r0))
+			(vp-cpy-ir-ub r2 0 r3)
+			(breakif '(r3 = 0))
+			(vpif '(r3 = r0))
 				(vp-cpy-ir-ub r2 1 r0)
 				(break 'exit)
 			(endif)
-			(vp-add-cr +short_size+ r2)
+			(vp-add-cr +short_size r2)
 		(loop-end)
 	(endif)
 
-	(exit '(r0))
+	(exit '(r0 r1))
 	(vp-ret)
 
 (vp-label 'title)
@@ -353,12 +357,10 @@
 	;trashes
 	;r0-r14
 
-	(def-struct 'local)
-		(ptr 'root 'ctx_flist 'ctx_next)
-		(when (/= num_old_regions 0)
-			(ptr 'damaged_region)
-			(uint 'index))
-	(def-struct-end)
+	(def-struct local 0
+		(ptr root ctx_flist ctx_next)
+		(ptr damaged_region)
+		(uint index))
 
 	;save inputs
 	(vp-alloc local_size)
@@ -396,8 +398,8 @@
 		;paste new damaged region into all old damaged regions
 		(assign '((r4 statics_gui_old_region_index)) '(r2))
 		(loop-start)
-			(vp-add-cr +ptr_size+ r2)
-			(vpif (list r2 '= (* num_old_regions +ptr_size+)))
+			(vp-add-cr +ptr_size r2)
+			(vpif (list r2 '= (* num_old_regions +ptr_size)))
 				(vp-xor-rr r2 r2)
 			(endif)
 			(assign '((& r4 statics_gui_old_regions) (r4 statics_gui_old_region_index)) '(r1 r3))
@@ -411,8 +413,8 @@
 		(assign '(r0) '((r1 r2)))
 
 		;move on to next old region
-		(vp-add-cr +ptr_size+ r2)
-		(vpif (list r2 '= (* num_old_regions +ptr_size+)))
+		(vp-add-cr +ptr_size r2)
+		(vpif (list r2 '= (* num_old_regions +ptr_size)))
 			(vp-xor-rr r2 r2)
 		(endif)
 		(assign '((rsp local_root) r2) '(r0 (r4 statics_gui_old_region_index))))
@@ -461,9 +463,8 @@
 	(vp-ret)
 
 (vp-label 'visible_down_callback)
-	(def-struct 'vis)
-		(ptr 'this 'root 'next 'region)
-	(def-struct-end)
+	(def-struct vis 0
+		(ptr this root next region))
 
 	;save inputs
 	(vp-alloc vis_size)
@@ -479,7 +480,7 @@
 		;remove my opaque region from ancestors
 		(vp-xor-rr r2 r2)
 		(assign '(r2 (r1 view_flags)) '((rsp vis_region) r3))
-		(vp-and-cr +view_flag_opaque+ r3)
+		(vp-and-cr view_flag_opaque r3)
 		(vpif '(r3 /= 0))
 			;remove entire view from ancestors
 			(assign '(0 0 (r1 view_w) (r1 view_h)) '(r7 r8 r9 r10))
@@ -604,11 +605,11 @@
 	;if dirty all flag then paste entire view onto parent
 	(assign '((rsp vis_this)) '(r2))
 	(assign '((r2 view_flags)) '(r3))
-	(vp-and-cr +view_flag_dirty_all+ r3)
+	(vp-and-cr view_flag_dirty_all r3)
 	(vpif '(r3 /= 0))
 		;clear dirty all flag
 		(assign '((r2 view_flags)) '(r3))
-		(vp-and-cr (lognot +view_flag_dirty_all+) r3)
+		(vp-and-cr (lognot view_flag_dirty_all) r3)
 		(assign '(r3 (r2 view_x) (r2 view_y) (r2 view_w) (r2 view_h)) '((r2 view_flags) r7 r8 r9 r10))
 		(vp-add-rr r7 r9)
 		(vp-add-rr r8 r10)
@@ -625,9 +626,8 @@
 	(vp-ret)
 
 (vp-label 'distribute_down_callback)
-	(def-struct 'dist)
-		(ptr 'this 'data 'next)
-	(def-struct-end)
+	(def-struct dist 0
+		(ptr this data next))
 
 	;save inputs
 	(vp-alloc dist_size)
@@ -658,7 +658,7 @@
 		(vpif '(r1 /= 0))
 			;remove my opaque region from ancestors
 			(assign '((r2 view_flags)) '(r3))
-			(vp-and-cr +view_flag_opaque+ r3)
+			(vp-and-cr view_flag_opaque r3)
 			(vpif '(r3 /= 0))
 				;remove entire view from ancestors
 				(loop-start)

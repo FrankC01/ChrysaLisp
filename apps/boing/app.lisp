@@ -1,47 +1,51 @@
-;imports
 (import "sys/lisp.inc")
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 
-(structure '+event 0
-	(byte 'close+ 'max+ 'min+))
+(enums +select 0
+	(enum main timer))
+
+(enums +event 0
+	(enum close max min))
 
 (defq id t index 0 xv 4 yv 0
-	frames (map (lambda (_) (Canvas-from-file (cat "apps/boing/taoball_" (str _) ".cpm") +load_flag_shared+)) (range 1 12))
-	sframes (map (lambda (_) (Canvas-from-file (cat "apps/boing/taoball_s_" (str _) ".cpm") +load_flag_shared+)) (range 1 12))
+	frames (map (lambda (_) (Canvas-from-file (cat "apps/boing/taoball_" (str _) ".cpm") +load_flag_shared)) (range 1 12))
+	sframes (map (lambda (_) (Canvas-from-file (cat "apps/boing/taoball_s_" (str _) ".cpm") +load_flag_shared)) (range 1 12))
 	select (list (task-mailbox) (mail-alloc-mbox)) rate (/ 1000000 30))
 
 (ui-window mywindow ()
-	(ui-title-bar _ "Boing" (0xea19 0xea1b 0xea1a) +event_close+)
-	(ui-backdrop mybackdrop (:color +argb_black+ :ink_color +argb_white+ :min_width 640 :min_height 480)
+	(ui-title-bar _ "Boing" (0xea19 0xea1b 0xea1a) +event_close)
+	(ui-backdrop mybackdrop (:color +argb_black :ink_color +argb_white :style :grid
+			:spaceing 64 :min_width 640 :min_height 480)
 		(ui-element frame (elem 0 frames))
 		(ui-element sframe (elem 0 sframes))))
 
 (defun main ()
 	(bind '(x y w h) (apply view-locate (. mywindow :pref_size)))
 	(gui-add (. mywindow :change x y w h))
-	(mail-timeout (elem -2 select) rate)
+	(mail-timeout (elem +select_timer select) rate)
 	(while id
 		(defq msg (mail-read (elem (defq idx (mail-select select)) select)))
 		(cond
-			((= idx 0)
+			((= idx +select_main)
 				;main mailbox
 				(cond
-					((= (setq id (get-long msg ev_msg_target_id)) +event_close+)
+					((= (setq id (getf msg +ev_msg_target_id)) +event_close)
 						(setq id nil))
-					((= id +event_min+)
+					((= id +event_min)
 						;min button
 						(bind '(x y w h) (apply view-fit (cat (. mywindow :get_pos) (. mywindow :pref_size))))
 						(. mywindow :change_dirty x y w h))
-					((= id +event_max+)
+					((= id +event_max)
 						;max button
 						(bind '(x y) (. mywindow :get_pos))
 						(bind '(w h) (. mywindow :pref_size))
 						(bind '(x y w h) (view-fit x y (/ (* w 5) 3) (/ (* h 5) 3)))
 						(. mywindow :change_dirty x y w h))
 					(t (. mywindow :event msg))))
-			(t	;timer event
-				(mail-timeout (elem -2 select) rate)
+			((= idx +select_timer)
+				;timer event
+				(mail-timeout (elem +select_timer select) rate)
 				(bind '(_ _ backdrop_width backdrop_height) (. mybackdrop :get_bounds))
 				(defq index (% (inc index) (length frames))
 					old_frame frame frame (elem index frames)

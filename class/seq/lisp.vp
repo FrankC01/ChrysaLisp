@@ -135,10 +135,9 @@
 	;trashes
 	;r1-r14
 
-	(def-struct 'local)
-		(ptr 'this 'args 'value 'func 'params)
-		(int 'dir 'start 'end)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this args value func params)
+		(int dir start end))
 
 	(entry 'seq :lisp_each '(r0 r1))
 
@@ -152,7 +151,7 @@
 
 	(assign '((rsp local_args)) '(r0))
 	(list-bind-args r0 '(r9 r10 r11 r12) '(:num :num :obj :list))
-	(vp-cpy-cr +max_int+ r8)
+	(vp-cpy-cr +max_int r8)
 	(class/array/get_both r12 r6 r7)
 	(loop-while '(r6 /= r7))
 		(vp-cpy-ir r6 0 r0)
@@ -163,13 +162,13 @@
 		(vpif '(r1 < r8))
 			(vp-cpy-rr r1 r8)
 		(endif)
-		(vp-add-cr +ptr_size+ r6)
+		(vp-add-cr +ptr_size r6)
 	(loop-end)
 
 	(assign '((rsp local_this)) '(r0))
 	(call 'obj :ref '((r0 lisp_sym_nil)) '((rsp local_value)))
 
-	(vpif '(r8 /= +max_int+))
+	(vpif '(r8 /= +max_int))
 		(vpif '(r9 < 0))
 			(vp-add-rr r8 r9)
 			(vp-add-cr 1 r9)
@@ -202,7 +201,7 @@
 			(loop-start)
 				(call 'seq :ref_element '((r10 0) r9) '(_ r1))
 				(call 'list :push_back '((rsp local_params) r1))
-				(vp-add-cr +ptr_size+ r10)
+				(vp-add-cr +ptr_size r10)
 			(loop-until '(r10 = r11))
 
 			(call 'num :create '(r9) '(r2))
@@ -225,7 +224,7 @@
 	(endif)
 
 (vp-label 'funcexit)
-	(call 'lisp :env_pop '((rsp local_this)) '(r0))
+	(call 'lisp :env_pop '((rsp local_this)) '(r0 _))
 	(exit 'seq :lisp_each '(r0 (rsp local_value)))
 	(vp-free local_size)
 	(vp-ret)
@@ -253,10 +252,9 @@
 	;trashes
 	;r1-r14
 
-	(def-struct 'local)
-		(ptr 'this 'args 'value 'mode 'func 'params)
-		(int 'dir 'start 'end)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this args value mode func params)
+		(int dir start end))
 
 	(entry 'seq :lisp_some '(r0 r1))
 
@@ -270,7 +268,7 @@
 
 	(assign '((rsp local_args)) '(r0))
 	(list-bind-args r0 '(r9 r10 r11 r12 r13) '(:num :num :obj :obj :list))
-	(vp-cpy-cr +max_int+ r8)
+	(vp-cpy-cr +max_int r8)
 	(class/array/get_both r13 r6 r7)
 	(loop-while '(r6 /= r7))
 		(vp-cpy-ir r6 0 r0)
@@ -281,12 +279,12 @@
 		(vpif '(r1 < r8))
 			(vp-cpy-rr r1 r8)
 		(endif)
-		(vp-add-cr +ptr_size+ r6)
+		(vp-add-cr +ptr_size r6)
 	(loop-end)
 
 	(call 'obj :ref '(r11) '((rsp local_value)))
 
-	(vpif '(r8 /= +max_int+))
+	(vpif '(r8 /= +max_int))
 		(vpif '(r9 < 0))
 			(vp-add-rr r8 r9)
 			(vp-add-cr 1 r9)
@@ -320,7 +318,7 @@
 			(loop-start)
 				(call 'seq :ref_element '((r10 0) r9) '(_ r1))
 				(call 'list :push_back '((rsp local_params) r1))
-				(vp-add-cr +ptr_size+ r10)
+				(vp-add-cr +ptr_size r10)
 			(loop-until '(r10 = r11))
 
 			(call 'num :create '(r9) '(r2))
@@ -351,7 +349,7 @@
 	(endif)
 
 (vp-label 'funcexit)
-	(call 'lisp :env_pop '((rsp local_this)) '(r0))
+	(call 'lisp :env_pop '((rsp local_this)) '(r0 _))
 	(exit 'seq :lisp_some '(r0 (rsp local_value)))
 	(vp-free local_size)
 	(vp-ret)
@@ -428,7 +426,7 @@
 	(vpcase (list ovtable '= vtable))
 	(errorcases
 		(assign `((,element obj_vtable)) `(,ovtable))
-		(gotoif (list ovtable '/= vtable) 'error))
+		(gotoif (list ovtable '/= vtable) 'error1))
 		(list-cast-args `(,element) '(:char))
 		(goto 'dofind)
 	(default)
@@ -490,7 +488,7 @@
 	(vpcase (list ovtable '= vtable))
 	(errorcases
 		(assign `((,element obj_vtable)) `(,ovtable))
-		(gotoif (list ovtable '/= vtable) 'error))
+		(gotoif (list ovtable '/= vtable) 'error1))
 		(list-cast-args `(,element) '(:char))
 		(goto 'dofind)
 	(default)

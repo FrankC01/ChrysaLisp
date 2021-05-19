@@ -4,6 +4,87 @@
 
 ------
 
+VP and CScript optimizers improved for clarity and extra cases.
+
+Edit app re-write started. Basic editing first stage.
+
+Key modifiers passed in GUI key events.
+
+New text Buffer class. `lib/text/buffer.inc`
+
+------
+
+Rename 'local-align' just 'align' as it's no longer a function but a simple
+symbol.
+
+New Element room for Chrysalisp OS, #ChrysaLisp-OS@matrix.org, unfortunately
+Gary Boyd admin of the old room has gone dark, I sincerely hope he is OK. But
+we must move to another room where there is admin access.
+
+New `(setf-> msg field ...)` macro and extended `(set-field) (get-field)`
+functions to ease message creation.
+
+New `(export env sym ...)` macro to go along with `(env-push) ... (env-pop)`. A
+new Module technique !
+
+Docs app rewrite to use dynamically loaded section handler modules. Added new
+'image' module for embed images and 'file' section to embed source code. Also
+rewrote the :text section handler to allow heading underlines and text flow.
+
+Pipe functions re-implemented as a Pipe class `lib/task/pipe.inc`. Terminals
+switched to use this new class. Stdio class message structure and pipe startup
+sequence simplified.
+
+------
+
+New launch scripts for Windows powershell, that implement the -n -e -b -h
+options, care of Martyn Blyss.
+
+Removal of 'task :open_child as now redundant.
+
+VP version of 'task :callback.
+
+New `(env-push)` and `(env-pop)` functions for manual environment handling.
+
+VP assembler functions now use a transient environment between the
+`(def-method)` and `(def-func-end)`.
+
+`(vp-def)` macro now checks to ensure no symbols are redefined from outside the
+function.
+
+------
+
+Added nesting to the `(#)` macro ! Plus arbitrary % parameters not just
+starting from %0. This comes with the addition to `boot.inc` of a `(walk-list
+list elm_fnc down_fnc up_fnc)` function ! Enjoy.
+
+Promotion of `(get-field)` `(set-field)` `(obj-ref)` and `(weak-ref)` to
+`boot.inc`.
+
+`(get-xxx)` macros now uses `(get-field)` and addition of `(get-nodeid)` and
+`(get-netid)` macros.
+
+Addition of +net_id_size+ and +node_id_size+ symbols.
+
+`(structure)` macro promoted to `boot.inc` with new `(getf)` macro. Structure
+not only creates constant symbols ie `name_field` for the field offsets but
+also type symbols `name_field_t` to allow the `(getf)` macro to create the
+correct accessor.
+
+No longer enforce constant format on structure member symbols. Standardize on
+trailing "_t" for type symbols.
+
+`(def-struct)`, `(def-enum)` and `(def-bit)` now implemented as macros. Deleted
+`(def-struct-end)`, `(def-enum-end)` and `(def-bit-end)`.
+
+Introduction of `(enums)` at Lisp level in `boot.inc`. Enums fields are not
+typed, they have no auto `xxx_t` symbol created.
+
+Introduction of `(bits)` at Lisp level in `boot.inc`. Bits fields also are not
+typed, they have no auto `xxx_t` symbol created.
+
+------
+
 Host main.cpp pii_sleep function now standardized on usec for time interval
 like other the other time functions. As we are no longer using SDL sleep call.
 
@@ -13,6 +94,24 @@ Textfield widget now has :clear_text property. This is mapped to :text property
 depending on the value of a :mode (nil | t) property.
 
 Implemented `(if ...)` in VP code ! Nice performance boost across the system.
+
+Implemented `(or ...)` as a single `(cond ..)` statement, no more uses
+`(gensysm)` symbols for each clause !
+
+Always build the EMU vp64 boot_image in release mode ! This takes 20% off the
+install time and shrinks the snapshot.zip.
+
+Improvements to the launch scripts to allow base cpu offset... optional -n, -e
+and -b parameters. If the base offset is other than 0, the default, then the
+`./stop.sh` script will not be called before launching the new network !
+
+[-n cnt] number of nodes
+[-b base] base offset
+[-e] emulator mode
+[-h] help
+
+Added `link` command to allow bringing up a SHMEM link driver from the TUI or
+GUI command line.
 
 ------
 
@@ -116,6 +215,9 @@ critical compositor methods will remain in VP code.
 
 Rename (class) and (method) to (defclass) and (defmethod) !
 
+New `(num-intern)` for manual internment of number objects. `(read)` now
+interns number objects.
+
 ------
 
 New (class), (method), (method) and (.) macro in `class/lisp/boot.inc` to
@@ -156,7 +258,7 @@ color format.
 New profiling lib ! `lib/debug/profile.inc`. Whiteboard app nows runs
 profiling to demo the output.
 
-```lisp
+```code
 Whiteboard App
 Fun:           redraw Cnt:    261 Total ns:     1481
 Fun:          flatten Cnt:     13 Total ns:     1278
@@ -297,7 +399,7 @@ get promoted to part of the (read) function. Thanks to FrancC01 for inspiring
 this addition.
 
 eg.
-```lisp
+```code
 (map (# (< %0 0)) '(1 2 3 4 5 6 -6 -7 -8 0 7))
 (nil nil nil nil nil nil t t t nil nil)
 ```
@@ -606,7 +708,7 @@ the wrong mailbox !
 
 ------
 
-GUI process now sends out a ev_type_gui event to all top level components on a
+GUI process now sends out a +ev_type_gui event to all top level components on a
 GUI resize event. This allows apps to resize themselves or in the case of the
 new wallpaper app demo, maybe switch to better fitting assets etc.
 

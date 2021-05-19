@@ -11,8 +11,7 @@
 ;   See ijmptbl below
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;imports
-(import "lib/pipe/pipe.inc")
+(import "lib/task/pipe.inc")
 (import "lib/logging/logservice.inc")
 (import "lib/pathnode/pathnode.inc")
 (import "lib/ipc/server_ipc.inc")
@@ -20,7 +19,7 @@
 ; Setup logging, service mailbox and timezones
 (defq
   tlog      (anchor-logger "tui2")
-  +banner+  "ChrysaLisp Terminal-2 0.9 (RC-1)"
+  +banner  "ChrysaLisp Terminal-2 0.9 (RC-1)"
   tmserv    (server-ipc (mail-alloc-mbox))
   tzone     nil)
 
@@ -96,17 +95,17 @@
 (defun drop-session (ic &optional args)
   ; (drop-session cmd [args]) -> map
   ; Removes the key (first arg) from the session map
-  (drop! +envcfg+ (first (split args " "))))
+  (drop! +envcfg (first (split args " "))))
 
 (defun print-session (ic &optional args)
   ; (print-session cmd [args]) -> map
   ; prints session values
   (prtnl "Session vars:")
-  (each (lambda((_k _v)) (prtnl (str " " _k " -> " _v))) (entries +envcfg+)))
+  (each (lambda((_k _v)) (prtnl (str " " _k " -> " _v))) (entries +envcfg)))
 
 (defun run-cmd (bfr)
   ; (run-cmd buffer) -> result of command
-  (catch (setq cmd (pipe-open (session-sub bfr))) (progn (setq cmd nil) t))
+  (catch (setq cmd (Pipe (session-sub bfr))) (progn (setq cmd nil) t))
   (unless cmd
     (print (cat
              "Command '"
@@ -122,7 +121,7 @@
 
 (defun switch-help (ic &optional args)
   (prtnl "")
-  (prtnl +banner+)
+  (prtnl +banner)
   (prtnl "")
   (prtnl "Switches:")
   (prtnl " -h   prints this help")
@@ -212,7 +211,7 @@
       (cond
         (cmd
           ;feed active pipe
-          (pipe-write cmd (cat buffer (ascii-char 10))))
+          (. cmd :write (cat buffer (ascii-char 10))))
         (t  ; otherwise
           (cond
             ((/= (length buffer) 0)
@@ -225,8 +224,8 @@
       (when cmd
         ;feed active pipe, then EOF
         (when (/= (length buffer) 0)
-          (pipe-write cmd buffer))
-        (pipe-close cmd)
+          (. cmd :write buffer))
+        (. cmd :close)
         (setq cmd nil buffer "")
         (print (cat (ascii-char 10) (prompt)))))
     ((and (= c 8) (/= (length buffer) 0))
@@ -240,7 +239,7 @@
   ; Load path-nodes
   (defq continue t)
   ;sign on msg
-  (prtnl +banner+)
+  (prtnl +banner)
   (log-info tlog "Started Terminal 2")
   (while continue
     (catch
@@ -255,18 +254,18 @@
         ; Prompt
         (print (prompt))
         ;create child and send args
-        (mail-send (open-child "apps/terminal/tui_child.lisp" kn_call_open) (task-mailbox))
+        (mail-send (open-child "apps/terminal/tui_child.lisp" +kn_call_open) (task-mailbox))
         (defq cmd nil buffer "")
         (while t
           (defq data t)
-          (if cmd (setq data (pipe-read cmd)))
+          (if cmd (setq data (. cmd :read)))
           (cond
             ((eql data t)
               ;normal mailbox event
               (terminal-input (get-byte (mail-read (task-mailbox)) 0)))
             ((nil? data)
               ;pipe is closed
-              (pipe-close cmd)
+              (.cmd :close)
               (setq cmd nil)
               (print (prompt)))
             (t  ;string from pipe

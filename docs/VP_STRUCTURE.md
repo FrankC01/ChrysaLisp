@@ -1,4 +1,4 @@
-# Structuring
+# VP Structuring
 
 This document covers the various structuring elements of VP/C-Script source
 code. Conditionals, loops, switches, structures, enums, bits, classes, objects
@@ -17,16 +17,14 @@ Allow you to define a set of incrementing constants. You can set the first
 value and each subsequent symbol gets the current value plus one.
 
 ```vdu
-(def-enum 'bert 24)
-	(enum 'a 'b 'c)
-	(enum 'd)
-	(enum 'e 'f)
-(def-enum-end)
+(def-enum bert 24
+	(enum a b c)
+	(enum d)
+	(enum e f))
 ```
 
-This example will start the enum count at 24, this is an optional value, and
-will default to 0 if not present. The end result is a set of symbols and
-assigned values of:
+This example will start the enum count at 24. The end result is a set of
+symbols and assigned values of:
 
 ```vdu
 bert_a -> 24
@@ -35,6 +33,7 @@ bert_c -> 26
 bert_d -> 27
 bert_e -> 28
 bert_f -> 29
+bert_size -> 30
 ```
 
 ### Bits
@@ -43,16 +42,14 @@ Allow you to define a set of bit masks. Again you can set the initial bit
 offset and for each subsequent bit the mask is shifted left by 1.
 
 ```vdu
-(def-bit 'alf 2)
-	(bit 'a 'b 'c)
-	(bit 'd)
-	(bit 'e 'f)
-(def-bit-end)
+(def-bit alf 2
+	(bit a b c)
+	(bit d)
+	(bit e f))
 ```
 
-This example will start the bit offset at 2, a mask value of 4, this is an
-optional value, and will default to 0 if not present. The end result is a set
-of symbols and assigned values of:
+This example will start the bit offset at 2, a mask value of 4. The end result
+is a set of symbols and assigned values of:
 
 ```vdu
 alf_a -> 4
@@ -61,6 +58,7 @@ alf_c -> 16
 alf_d -> 32
 alf_e -> 64
 alf_f -> 128
+alf_size -> 256
 ```
 
 ### Structures
@@ -72,75 +70,71 @@ Field offsets are aligned to the natural alignment for that type ! The size of
 the entire structure is not aligned.
 
 ```vdu
-(def-struct 'sue)
-	(byte 'a 'b 'c)
-(def-struct-end)
+(def-struct sue 0
+	(byte a b c))
 
-(def-struct 'carl)
-	(short 'a 'b 'c)
-(def-struct-end)
+(def-struct carl 0
+	(short a b c))
 
-(def-struct 'bob)
+(def-struct bob 0
 	(union
-		(struct 'a 'sue)
-		(struct 'b 'carl))
-	(short 'c)
-	(int 'd)
-	(offset 'o)
-	(long 'e)
-	(ptr 'f)
-(def-struct-end)
+		(struct a sue_size)
+		(struct b carl_size))
+	(short c)
+	(int d)
+	(offset o)
+	(long e)
+	(ptr f))
 
-(def-struct 'mary 'bob)
-	(ushort 'a)
-	(uint 'b)
-	(pulong 'c)
-	(pptr 'd)
-(def-struct-end)
+(def-struct mary bob_size
+	(ushort a)
+	(uint b)
+	(pulong c)
+	(pptr d))
 ```
 
 The end result is a set of symbols and assigned values of:
 
 ```vdu
 sue_a -> 0
-_t_sue_a -> "b"
+sue_a_t -> "b"
 sue_b -> 1
-_t_sue_b -> "b"
+sue_b_t -> "b"
 sue_c -> 2
-_t_sue_c -> "b"
+sue_c_t -> "b"
 sue_size -> 3
 
 carl_a -> 0
-_t_carl_a -> "s"
+carl_a_t -> "s"
 carl_b -> 2
-_t_carl_b -> "s"
+carl_b_t -> "s"
 carl_c -> 4
-_t_carl_c -> "s"
+carl_c_t -> "s"
 carl_size -> 6
 
 bob_a -> 0
-_t_bob_a -> nil
+bob_a_t -> nil
 bob_b -> 0
-_t_bob_b -> nil
+bob_b_t -> nil
 bob_c -> 6
-_t_bob_c -> "s"
+bob_c_t -> "s"
 bob_d -> 8
-_t_bob_d -> "i"
+bob_d_t -> "i"
 bob_o -> 12
 bob_e -> 16
-_t_bob_e -> "l"
+bob_e_t -> "l"
 bob_f -> 24
-_t_bob_f -> "p"
+bob_f_t -> "p"
 bob_size -> 32
 
 mary_a -> 32
-_t_mary_a -> "S"
+mary_a_t -> "S"
 mary_b -> 36
-_t_mary_b -> "I"
+mary_b_t -> "I"
 mary_c -> 40
-_t_mary_c -> "pL"
+mary_c_t -> "pL"
 mary_d -> 48
-_t_mary_d -> "pp"
+mary_d_t -> "pp"
 mary_size -> 56
 ```
 
@@ -335,23 +329,21 @@ This is an example of a 'pair class, first the `class.inc` file.
 ```vdu
 (include "class/obj/class.inc")
 
-(def-class 'pair 'obj)
-(dec-method :vtable 'class/pair/vtable)
-(dec-method :create 'class/pair/create :static '(r0 r1) '(r0))
-(dec-method :init 'class/pair/init :static '(r0 r1 r2 r3))
-(dec-method :ref_first 'class/pair/ref_first :static '(r0) '(r0 r1))
-(dec-method :ref_second 'class/pair/ref_second :static '(r0) '(r0 r1))
-(dec-method :get_first 'class/pair/get_first :static '(r0) '(r0 r1))
-(dec-method :get_second 'class/pair/get_second :static '(r0) '(r0 r1))
-(dec-method :set_first 'class/pair/set_first :static '(r0 r1) '(r0))
-(dec-method :set_second 'class/pair/set_second :static '(r0 r1) '(r0))
+(def-class pair obj
+	(dec-method :vtable class/pair/vtable)
+	(dec-method :create class/pair/create :static (r0 r1) (r0))
+	(dec-method :init class/pair/init :static (r0 r1 r2 r3))
+	(dec-method :ref_first class/pair/ref_first :static (r0) (r0 r1))
+	(dec-method :ref_second class/pair/ref_second :static (r0) (r0 r1))
+	(dec-method :get_first class/pair/get_first :static (r0) (r0 r1))
+	(dec-method :get_second class/pair/get_second :static (r0) (r0 r1))
+	(dec-method :set_first class/pair/set_first :static (r0 r1) (r0))
+	(dec-method :set_second class/pair/set_second :static (r0 r1) (r0))
+	(dec-method :deinit class/pair/deinit :final))
 
-(dec-method :deinit 'class/pair/deinit :final)
-
-(def-struct 'pair 'obj)
-	(ptr 'first)
-	(ptr 'second)
-(def-struct-end)
+(def-struct pair obj_size
+	(ptr first)
+	(ptr second))
 
 ;;;;;;;;;;;;;;;;;
 ; inline methods
@@ -520,5 +512,4 @@ Note that the `init` and `deinit` methods make an `(s-call)` and `(s-jump)` to
 the superclass `init` and `deinit` methods !
 
 Although this is a very simple class, one that just holds references to two
-other objects (for use by the `hset` and `hmap` classes), it covers all the
-basic requirements of any class.
+other objects, it covers all the basic requirements of any VP level class.

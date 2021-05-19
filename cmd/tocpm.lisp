@@ -1,4 +1,3 @@
-;imports
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 (import "lib/options/options.inc")
@@ -6,7 +5,7 @@
 (defun conv-file (in_file)
 	(unless (eql in_file "")
 		(defq out_file (cat (slice 0 (find-rev "." in_file) in_file) ".cpm")
-			canvas (Canvas-from-file in_file +load_flag_noswap+))
+			canvas (Canvas-from-file in_file +load_flag_noswap))
 		(. canvas :save out_file format)
 		(print in_file " -> " out_file)
 		(stream-flush (io-stream 'stdout))))
@@ -16,7 +15,7 @@
 "Usage: tocmp [options] [path] ...
 	options:
 		-h --help: this help info.
-		-f --format 1|8|16|15|24|32: default 32.
+		-f --format 1|8|15|16|24|32: pixel format, default 32.
 	Load the images and save as .cpm images.
 	If no paths given on command line
 	then paths are read from stdin.")

@@ -6,14 +6,13 @@
 ; func structures
 ;;;;;;;;;;;;;;;;;
 
-(def-struct 'fn_header 'ln_fnode)
-	(ushort 'length)
-	(ushort 'entry)
-	(ushort 'links)
-	(ushort 'paths)
-	(ushort 'stack)
-	(offset 'pathname)
-(def-struct-end)
+(def-struct fn_header ln_fnode_size
+	(ushort length)
+	(ushort entry)
+	(ushort links)
+	(ushort paths)
+	(ushort stack)
+	(offset pathname))
 
 ;;;;;;;;;;;
 ; functions
@@ -32,6 +31,7 @@
 	(str "rs_" _))
 
 (defun def-func (*name* &optional falign fstack)
+	(env-push)
 	(emit-reset)
 	(setq *func_name* *name* *switch_nxt* 0 *func_align* (opt falign stack_align))
 	(clear *strings* *paths* *links* *func_syms*)
@@ -46,16 +46,18 @@
 (vp-label 'fn_name_start)
 	(vp-string (str *name*))
 	(vp-byte 0 (list '- (label-sym 'fn_entry) (label-sym 'fn_name_start)))
-	(vp-align +ptr_size+ (list '- (label-sym 'fn_entry) (label-sym 'fn_name_start)))
+	(vp-align +ptr_size (list '- (label-sym 'fn_entry) (label-sym 'fn_name_start)))
 (vp-label 'fn_entry)
-	(push-scope))
+	(push-scope)
+	(defcvar '*emit_start* (length *emit_list*)))
 
 (defun def-func-end ()
+	(defcvar '*emit_end* (length *emit_list*))
 	(pop-scope-checked)
 	(each (lambda (s)
 	(vp-label (string-sym _))
 		(vp-string s) (vp-byte 0)) *strings*)
-	(vp-align +ptr_size+)
+	(vp-align +ptr_size)
 (vp-label 'fn_links)
 	(each (lambda (s)
 	(vp-label (link-sym _))
@@ -64,15 +66,16 @@
 	(each (lambda (s)
 	(vp-label (path-sym _))
 		(vp-string (str s)) (vp-byte 0)) *paths*)
-	(vp-align +ptr_size+)
+	(vp-align +ptr_size)
 (vp-label 'fn_end)
-	(opt-emit-buffer)
+	(opt-emit-list *emit_list* *emit_start* *emit_end*)
 	(when *debug_emit*
-		(each print-emit *emit_buffer*))
+		(each print-emit *emit_list*))
 	(emit-passes)
 	(apply undef (cat (list *compile_env*) *func_syms*))
 	(save *out_buffer* (cat "obj/" *cpu* "/" *abi* "/" (str *func_name*)))
-	(print "-> " (str "obj/" *cpu* "/" *abi* "/" (str *func_name*) " (" (length *out_buffer*) ")")))
+	(print "-> " (str "obj/" *cpu* "/" *abi* "/" (str *func_name*) " (" (length *out_buffer*) ")"))
+	(env-pop))
 
 (defun fn-add-string (s)
 	(defq i -1)

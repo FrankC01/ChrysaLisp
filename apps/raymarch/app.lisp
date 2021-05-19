@@ -2,31 +2,33 @@
 (import "sys/lisp.inc")
 (jit "apps/raymarch/" "lisp.vp" '("tile"))
 
-;imports
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 (import "lib/task/farm.inc")
+(import "apps/raymarch/app.inc")
 
-(structure '+event 0
-	(byte 'close+))
+(enums +event 0
+	(enum close))
 
-(structure '+select 0
-	(byte 'main+ 'task+ 'reply+ 'timer+))
-
-(defun child-msg (&rest _)
-	(apply cat (map (# (char %0 +long_size+)) _)))
+(enums +select 0
+	(enum main task reply timer))
 
 (defq canvas_width 800 canvas_height 800 canvas_scale 1
 	timer_rate (/ 1000000 1) id t dirty nil
 	retry_timeout (if (starts-with "obj/vp64" (load-path)) 50000000 5000000)
 	select (list (task-mailbox) (mail-alloc-mbox) (mail-alloc-mbox) (mail-alloc-mbox))
-	jobs (map (lambda (y) (child-msg
-			0 y (* canvas_width canvas_scale) (inc y)
-			(* canvas_width canvas_scale) (* canvas_height canvas_scale)))
+	jobs (map (lambda (y)
+			(setf-> (str-alloc +job_size)
+				(+job_x 0)
+				(+job_y y)
+				(+job_x1 (* canvas_width canvas_scale))
+				(+job_y1 (inc y))
+				(+job_w (* canvas_width canvas_scale))
+				(+job_h (* canvas_height canvas_scale))))
 		(range (dec (* canvas_height canvas_scale)) -1)))
 
 (ui-window mywindow ()
-	(ui-title-bar _ "Raymarch" (0xea19) +event_close+)
+	(ui-title-bar _ "Raymarch" (0xea19) +event_close)
 	(ui-canvas canvas canvas_width canvas_height canvas_scale))
 
 (defun tile (canvas data)
@@ -51,7 +53,9 @@
 				(:insert :job job)
 				(:insert :timestamp (pii-time)))
 			(mail-send (. val :find :child)
-				(cat (char key +long_size+) (elem +select_reply+ select) job)))
+				(setf-> job
+					(+job_key key)
+					(+job_reply (elem +select_reply select)))))
 		(t	;no jobs in que
 			(.-> val
 				(:erase :job)
@@ -61,7 +65,7 @@
 	; (create key val nodes)
 	;function called when entry is created
 	(open-task "apps/raymarch/child.lisp" (elem (random (length nodes)) nodes)
-		kn_call_child key (elem +select_task+ select)))
+		+kn_call_child key (elem +select_task select)))
 
 (defun destroy (key val)
 	; (destroy key val)
@@ -74,36 +78,36 @@
 
 (defun main ()
 	;add window
-	(.-> canvas (:fill +argb_black+) :swap)
+	(.-> canvas (:fill +argb_black) :swap)
 	(bind '(x y w h) (apply view-locate (. mywindow :pref_size)))
 	(gui-add (. mywindow :change x y w h))
 	(defq farm (Farm create destroy (* 2 (length (mail-nodes)))))
-	(mail-timeout (elem +select_timer+ select) timer_rate)
+	(mail-timeout (elem +select_timer select) timer_rate)
 	(while id
 		(defq msg (mail-read (elem (defq idx (mail-select select)) select)))
 		(cond
-			((= idx +select_main+)
+			((= idx +select_main)
 				;main mailbox
 				(cond
-					((= (setq id (get-long msg ev_msg_target_id)) +event_close+)
+					((= (setq id (getf msg +ev_msg_target_id)) +event_close)
 						;close button
 						(setq id nil))
 					(t (. mywindow :event msg))))
-			((= idx +select_task+)
+			((= idx +select_task)
 				;child launch responce
-				(defq key (get-long msg 0) child (slice +long_size+ (const (+ +long_size+ net_id_size)) msg))
+				(defq key (getf msg +kn_msg_key) child (getf msg +kn_msg_reply_id))
 				(when (defq val (. farm :find key))
 					(. val :insert :child child)
 					(dispatch-job key val)))
-			((= idx +select_reply+)
+			((= idx +select_reply)
 				;child responce
-				(defq key (get-long msg (- (length msg) +long_size+)))
+				(defq key (get-long msg (- (length msg) +long_size)))
 				(when (defq val (. farm :find key))
 					(dispatch-job key val))
 				(setq dirty t)
 				(tile canvas msg))
 			(t	;timer event
-				(mail-timeout (elem +select_timer+ select) timer_rate)
+				(mail-timeout (elem +select_timer select) timer_rate)
 				(. farm :refresh retry_timeout)
 				(when dirty
 					(setq dirty nil)

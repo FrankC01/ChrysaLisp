@@ -1,5 +1,9 @@
 # TODO
 
+```image
+apps/images/magicbox.cpm
+```
+
 In no particular order but to just to ensure I get thoughts down. I'll keep
 adding to this as I go along. If anybody would like to try helping out, then
 just get in touch.
@@ -65,8 +69,6 @@ and other Aarch64 development board support along with GPIO/SPI/I2C and so
 forth for the maker community. SDL over frame buffer version for PI3, maybe
 just needs testing, but needs doing. L4 micro kernel hosted version could prove
 interesting.
-
-* Better cooking of key modifiers !
 
 * Network wide DHT based object store, provided as a service. I've been
 planning a network wide object store that presents itself as a standard service

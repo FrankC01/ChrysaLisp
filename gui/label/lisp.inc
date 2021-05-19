@@ -9,9 +9,8 @@
 	; (Label) -> label
 	(defq label_flow (Flow) label_text (Text))
 	(def this :label_flow label_flow :label_text label_text)
-	(. label_flow :set_flags 0 -1)
+	(.-> label_flow (:set_flags 0 -1) (:add_child label_text))
 	(. this :add_back label_flow)
-	(. label_flow :add_child label_text)
 
 	(defmethod :draw (this)
 		; (. label :draw) -> label
@@ -25,7 +24,7 @@
 
 	(defmethod :pref_size (this)
 		; (. label :pref_size) -> (width height)
-		(defq mw (get :min_width this) mh (get :min_height this)
+		(defq mw (def? :min_width this) mh (def? :min_height this)
 			border (abs (get :border this)))
 		(setd mw 0 mh 0)
 		(bind '(w h) (. (get :label_flow this) :pref_size))
@@ -37,6 +36,6 @@
 		(bind '(w h) (. this :get_size))
 		(.-> (get :label_flow this) (:change border border (- w (* border 2)) (- h (* border 2))) :layout)
 		(if (= (>> (get :color this) 24) 0xff)
-			(. this :set_flags +view_flag_opaque+ +view_flag_opaque+)
+			(. this :set_flags +view_flag_opaque +view_flag_opaque)
 			this))
 	)

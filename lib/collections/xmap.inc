@@ -2,6 +2,9 @@
 ; generic hash map object
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;module
+(env-push)
+
 (defmacro xmap-slot ()
 	`(defq x (get :buckets this)
 		b (* (% ((get :hash_fnc this) key) (get :num_buckets this)) 2)
@@ -88,10 +91,13 @@
 		this)
 	)
 
+;module
+(export (penv)
+	*class_xmap* xmap xmap?)
+(env-pop)
+
 (defun xmap-kv (&rest _)
 	; (xmap-kv [key val ...]) -> xmap
 	(defq this (xmap))
 	(each! 0 -1 (# (. this :insert %0 %1)) (unzip _ (list (list) (list))))
 	this)
-
-(undef (env) 'xmap-slot)

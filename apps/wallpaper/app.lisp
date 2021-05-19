@@ -4,7 +4,6 @@
 ;which they appear. No warranty is given, and no liability for use or
 ;distribution is expressed or implied by the works' original copyright holder.
 
-;imports
 (import "sys/lisp.inc")
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
@@ -15,30 +14,30 @@
 (defun refresh-wallpaper ()
 	;pick nearest wallpaper to screen size
 	(bind '(w h) (. screen :get_size))
-	(defq index 0 err +max_int+ flag 0)
+	(defq index 0 err +max_int flag 0)
 	(each (lambda ((iw ih it))
 		(defq iw (- w iw) ih (- h ih) new_err (+ (* iw iw) (* ih ih)))
 		(when (< new_err err)
-			(setq err new_err index _ flag (if (= it 32) 0 +view_flag_opaque+)))) images_info)
+			(setq err new_err index _ flag (if (= it 32) 0 +view_flag_opaque)))) images_info)
 	(. wallpaper :sub)
 	(gui-add-back (.-> (setq wallpaper (Canvas w h 1))
-		(:resize (Canvas-from-file (elem index *env_wallpaper_images*) +load_flag_noswap+)) :swap
-		(:set_flags (+ (const (+ +view_flag_at_back+ +view_flag_dirty_all+)) flag)
-			(const (+ +view_flag_at_back+ +view_flag_dirty_all+ +view_flag_opaque+)))
+		(:resize (Canvas-from-file (elem index *env_wallpaper_images*) +load_flag_noswap)) :swap
+		(:set_flags (+ (const (+ +view_flag_at_back +view_flag_dirty_all)) flag)
+			(const (+ +view_flag_at_back +view_flag_dirty_all +view_flag_opaque)))
 		(:change 0 0 w h))))
 
 (defun main ()
 	(defq images_info (map canvas-info *env_wallpaper_images*) wallpaper (View)
 			screen (penv (gui-add-back wallpaper)))
 	(each (lambda (_)
-		(open-child (app-path _) kn_call_open)) *env_launcher_auto_apps*)
+		(open-child (app-path _) +kn_call_open)) *env_launcher_auto_apps*)
 	(refresh-wallpaper)
 	(while t
 		(cond
-			((and (< (get-long (defq msg (mail-read (task-mailbox))) ev_msg_target_id) 0)
-					(= (get-long msg ev_msg_type) ev_type_gui))
+			((and (< (getf (defq msg (mail-read (task-mailbox))) +ev_msg_target_id) 0)
+					(= (getf msg +ev_msg_type) +ev_type_gui))
 				;resized GUI
 				(refresh-wallpaper))
-			((and (= (get-long msg ev_msg_type) ev_type_mouse) (= (get-int msg ev_msg_mouse_buttons) 0))
+			((and (= (getf msg +ev_msg_type) +ev_type_mouse) (= (getf msg +ev_msg_mouse_buttons) 0))
 				;run launcher
-				(open-child (app-path "launcher") kn_call_open)))))
+				(open-child (app-path "launcher") +kn_call_open)))))

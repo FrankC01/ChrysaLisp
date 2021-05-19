@@ -28,50 +28,35 @@
 	;trashes
 	;r0-r14
 
+	(vp-def (tcb ktcb usr addr msg data)
+		'(r7 r8 r9 r10 r11 r12))
+
 	;test if we are the kernel task
-	(fn-bind 'sys/statics/statics r2)
-	(assign '((r2 statics_sys_task_current_tcb) (r2 statics_sys_task_kernel_tcb)) '(r3 r2))
-	(vpif '(r2 = r3))
+	(fn-bind 'sys/statics/statics tcb)
+	(assign `((,tcb statics_sys_task_current_tcb) (,tcb statics_sys_task_kernel_tcb)) `(,tcb ,ktcb))
+	(vpif (list tcb '= ktcb))
 		;yes we can just do local call
 		(vp-jmp-r r1)
 	(endif)
 
-	(ptr 'usr 'addr 'msg 'data 'mbox_addr)
-	(struct 'node_id 'node_id)
-	(uint 'mbox_id)
-
-	(push-scope)
-	(entry 'sys_task :callback {usr, addr})
-
-	;alloc temp mailbox
-	(call 'sys_mail :alloc_mbox nil {mbox_id, mbox_addr})
+	(entry 'sys_task :callback `(,usr ,addr))
 
 	;allocate mail message
-	(call 'sys_mail :alloc {kn_msg_callback_size} {msg, data})
+	(call 'sys_mail :alloc '(+kn_msg_callback_size) `(,msg ,data))
 
 	;fill in destination, reply and function
-	(call 'sys_kernel :id nil {node_id.node_id_node1, node_id.node_id_node2})
-	(assign {0} {msg->msg_dest.net_id_mbox_id})
-	(assign {node_id.node_id_node1} {msg->msg_dest.net_id_node_id.node_id_node1})
-	(assign {node_id.node_id_node2} {msg->msg_dest.net_id_node_id.node_id_node2})
+	(call 'sys_kernel :id nil '(r0 r1))
+	(vp-xor-rr r2 r2)
+	(save-net-id msg msg_dest r2 r0 r1)
+	(vp-cpy-cr +kn_call_callback r0)
+	(assign `(,usr) `((,data +kn_msg_key)))
+	(assign '(r0) `((,data +kn_msg_func)))
+	(assign `(,tcb) `((,data ,(+ +kn_msg_reply_id net_id_mbox_id))))
+	(assign `(,addr) `((,data +kn_msg_callback_addr)))
 
-	(assign {mbox_id} {data->kn_msg_reply_id.net_id_mbox_id})
-	(assign {node_id.node_id_node1} {data->kn_msg_reply_id.net_id_node_id.node_id_node1})
-	(assign {node_id.node_id_node2} {data->kn_msg_reply_id.net_id_node_id.node_id_node2})
-
-	(assign {kn_call_callback} {data->kn_msg_func})
-	(assign {usr} {data->kn_msg_user})
-	(assign {addr} {data->kn_msg_callback_addr})
-
-	;send mail to kernel then wait for reply
-	(call 'sys_mail :send {msg})
-	(call 'sys_mail :read {mbox_addr} {msg, _})
-
-	;free reply mail and temp mailbox
-	(call 'sys_mail :free_mbox {mbox_id})
-	(jump 'sys_mail :free {msg})
-
-	(pop-scope-syms)
+	;send mail to kernel then suspend till kernel wakes us
+	(call 'sys_mail :send `(,msg))
+	(jump 'sys_task :suspend)
 
 (def-func-end)
 
@@ -270,8 +255,9 @@
 	;trashes
 	;r0-r14
 
-	(ptr 'func 'statics  'tcb)
-	(ulong 'tcb_size)
+	(def-vars
+		(ptr func statics tcb)
+		(ulong tcb_size))
 
 	(push-scope)
 	(entry 'sys_task :start {func})
@@ -280,8 +266,8 @@
 	(assign {@sys/statics/statics} {statics })
 	(assign {statics->statics_sys_task_task_count + 1} {statics->statics_sys_task_task_count})
 
-	;create new task control block and task
-	(call 'sys_mem :alloc {ushort(func - ubyte(func - +byte_size+) - +short_size+) + tk_node_size} {tcb, tcb_size})
+	;create new task control block and stack
+	(call 'sys_mem :alloc {ushort(func - ubyte(func - +byte_size) - +short_size) + tk_node_size} {tcb, tcb_size})
 (errorcases
 	(call 'sys_mem :fill {tcb, tcb_size, 0}))
 
@@ -293,7 +279,7 @@
 	;init task control block stack, pc and stop address's
 	(assign {tcb, tcb + tcb_size, 0, num_task_lists - 1, func} '(r0 r1 r2 r3 r4))
 	(ln-set-succ r0 0 r2)
-	(assign '(r3) '((r0 tk_node_priority)))
+	(assign '(r3 r1) '((r0 tk_node_priority) (r0 tk_node_stack_top)))
 	(stack-init)
 	(assign '(r1) {tcb->tk_node_stack})
 
@@ -314,9 +300,11 @@
 	;info
 	;stop current task, switch to next task
 
-	(ptr 'statics  'tcb)
+	(def-vars
+		(ptr statics tcb))
 (errorcases
-	(pptr 'stack 'stack_end))
+	(def-vars
+		(pptr stack stack_end)))
 
 	(push-scope)
 
@@ -342,7 +330,7 @@
 		(vpif {*stack /= 0})
 			(abort "Stack overrun !")
 		(endif)
-		(assign {stack + +ptr_size+} {stack})
+		(assign {stack + +ptr_size} {stack})
 	(loop-end))
 
 	;free our task control block
@@ -379,7 +367,6 @@
 	(loop-list-forward r3 statics_sys_task_timer_list r0 r7)
 		(assign '((r0 tk_node_time)) '(r1))
 		(breakif '(r1 > r6))
-
 		;remove from timer list and resume
 		(vp-cpy-rr r0 r5)
 		(vp-xor-rr r1 r1)
@@ -403,61 +390,33 @@
 
 (def-func-end)
 
-;;;;;;;;;;;;;;;;;;;;;;
-; single child process
-;;;;;;;;;;;;;;;;;;;;;;
-
-(def-method 'sys_task :open_child)
+(def-method 'sys_task :dump)
 	;inputs
-	;r0 = name c string (pubyte)
-	;r1 = spawn type (uint)
-	;outputs
-	;r0-r2 = net ID (net_id)
+	;rsp = task stack pointer (ptr)
 	;trashes
-	;r0-r14
+	;none
 
-	(ptr 'name 'msg 'data 'mailbox)
-	(uint 'type 'mbox_id 'len)
-	(struct 'id 'net_id)
+	(vp-def (stack_top sptr node node_offset) '(r3 r4))
 
-	;save task info
-	(push-scope)
-	(entry 'sys_task :open_child {name, type})
+	(vp-push r0 r1 r2 r3 r4)
 
-	;alloc temp mailbox
-	(call 'sys_mail :alloc_mbox nil {mbox_id, mailbox})
+	(fn-bind 'sys/statics/statics stack_top)
+	(assign `((,stack_top statics_sys_task_current_tcb) (& rsp ,(* +ptr_size 5))) `(,stack_top ,sptr))
+	(assign `((,stack_top tk_node_stack_top)) `(,stack_top))
+	(loop-while (list sptr '< stack_top))
+		(call 'sys_load :find `((,sptr 0)) `(,node ,node_offset))
+		(vpif (list node '/= 0))
+			(vp-push node_offset)
+			(call 'sys_pii :write_str `(2 (& ,node fn_header_pathname)))
+			(call 'sys_pii :write_str `(2 " ("))
+			(vp-pop node_offset)
+			(call 'sys_pii :write_num `(2 ,node_offset 10))
+			(call 'sys_pii :write_str `(2 ,(cat ")" (ascii-char 10))))
+		(endif)
+		(vp-add-cr +ptr_size sptr)
+	(loop-end)
 
-	;start task
-	(call 'sys_str :length {name} {_, len})
-	(call 'sys_mail :alloc {len + 1 + kn_msg_open_size} {msg, data})
-	(assign {type} {data->kn_msg_func})
-
-	(assign {0} {msg->msg_dest.net_id_mbox_id})
-	(call 'sys_kernel :id nil {msg->msg_dest.net_id_node_id.node_id_node1,
-		 msg->msg_dest.net_id_node_id.node_id_node2})
-	(assign {mbox_id} {data->kn_msg_reply_id.net_id_mbox_id})
-	(call 'sys_kernel :id nil {data->kn_msg_reply_id.net_id_node_id.node_id_node1,
-		 data->kn_msg_reply_id.net_id_node_id.node_id_node2})
-
-	(call 'sys_mem :copy {name, &data->kn_msg_open_pathname, len + 1})
-	(call 'sys_mail :send {msg})
-
-	;wait for reply
-	(call 'sys_mail :read {mailbox} {msg, data})
-	(assign {data->kn_msg_reply_id.net_id_mbox_id} {id.net_id_mbox_id})
-	(assign {data->kn_msg_reply_id.net_id_node_id.node_id_node1} {id.net_id_node_id.node_id_node1})
-	(assign {data->kn_msg_reply_id.net_id_node_id.node_id_node2} {id.net_id_node_id.node_id_node2})
-	(call 'sys_mail :free {msg})
-
-	;free temp mailbox
-	(call 'sys_mail :free_mbox {mbox_id})
-
-	;return ids array
-	(exit 'sys_task :open_child {
-		id.net_id_mbox_id,
-		id.net_id_node_id.node_id_node1,
-		id.net_id_node_id.node_id_node2})
-	(pop-scope)
-	(return)
+	(vp-pop r0 r1 r2 r3 r4)
+	(vp-ret)
 
 (def-func-end)

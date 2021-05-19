@@ -1,17 +1,16 @@
-;imports
 (import "sys/lisp.inc")
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 
-(structure '+event 0
-	(byte 'close+ 'button+))
+(enums +event 0
+	(enum close button))
 
 (ui-window mywindow ()
-	(ui-title-bar title "Launcher" (0xea19) +event_close+)
+	(ui-title-bar title "Launcher" (0xea19) +event_close)
 	;grid scales all buttons equally
 	(ui-grid grid (:grid_width 2 :grid_height (/ (inc (length *env_launcher_apps*)) 2))
 		(each (lambda (p)
-			(. (ui-button _ (:text p)) :connect +event_button+)) *env_launcher_apps*)))
+			(. (ui-button _ (:text p)) :connect +event_button)) *env_launcher_apps*)))
 
 (defun app-path (_)
 	(cat "apps/" _ "/app.lisp"))
@@ -22,10 +21,10 @@
 	(bind '(x y w h) (apply view-locate (push (list (/ (* w 100) 80) h) *env_launcher_position*)))
 	(gui-add (. mywindow :change x y w h))
 	(while (cond
-		((= (defq id (get-long (defq msg (mail-read (task-mailbox))) ev_msg_target_id)) +event_close+)
+		((= (defq id (getf (defq msg (mail-read (task-mailbox))) +ev_msg_target_id)) +event_close)
 			nil)
-		((= id +event_button+)
-			(open-child (app-path (get :text (. mywindow :find_id (get-long msg ev_msg_action_source_id)))) kn_call_open)
+		((= id +event_button)
+			(open-child (app-path (get :text (. mywindow :find_id (getf msg +ev_msg_action_source_id)))) +kn_call_open)
 			nil)
 		(t (. mywindow :event msg))))
 	(. mywindow :hide))

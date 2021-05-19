@@ -1,4 +1,20 @@
 ;lisp bindings
+(import "gui/gui/lisp.inc")
+(import "sys/list/lisp.inc")
+(import "class/hmap/lisp.inc")
+
+(structure +view +hmap_size
+	(offset start)
+	(struct node +ln_node_size)
+	(struct list +lh_list_size)
+	(struct owner_id +net_id_size)
+	(ptr dirty_region opaque_region ctx_node target_ids)
+	(long id)
+	(uint flags)
+	(int ctx_x ctx_y x y w h))
+
+(bits +view_flag 0
+	(bit solid opaque dirty_all at_back hiden))
 
 (defun view-fit (x y w h)
 	; (view-fit x y w h) -> (x y w h)
@@ -17,10 +33,6 @@
 		(:bottom (setq y (- my h -1)))
 		(:right (setq x (- mx w -1))))
 	(view-fit x y w h))
-
-;view flags
-(defq +view_flag_solid+ 1 +view_flag_opaque+ 2 +view_flag_dirty_all+ 4
-	+view_flag_at_back+ 8 +view_flag_hiden+ 16)
 
 (defclass View () nil
 	; (View) -> view
@@ -90,14 +102,14 @@
 
 	(defmethod :connect (this id)
 		; (. view :connect id) -> view
-		(unless (defq targets (get-field this (const view_target_ids) 0))
-			(set-field this (const view_target_ids) 0 (setq targets (array))))
+		(unless (defq targets (getf this +view_target_ids 0))
+			(setf this +view_target_ids (setq targets (array)) 0))
 		(push targets id)
 		this)
 
 	(defmethod :get_id (this)
 		; (. view :get_id) -> id
-		(get-field this (const view_id) +long_size+))
+		(getf this +view_id 0))
 
 	(defmethod :dirty (this)
 		; (. view :dirty) -> view
@@ -106,11 +118,11 @@
 
 	(defmethod :dirty_all (this)
 		; (. view :dirty_all) -> view
-		(. this :set_flags +view_flag_dirty_all+ +view_flag_dirty_all+))
+		(. this :set_flags +view_flag_dirty_all +view_flag_dirty_all))
 
 	(defmethod :get_flags (this)
 		; (. view :get_flags) -> flags
-		(get-field this (const view_flags) (const (neg +int_size+))))
+		(getf this +view_flags 0))
 
 	(defmethod :add_child (this child)
 		; (. view :add_child child) -> view
@@ -118,34 +130,25 @@
 
 	(defmethod :get_pos (this)
 		; (. view :get_pos) -> (x y)
-		(list (get-field this (const view_x) +int_size+)
-			(get-field this (const view_y) +int_size+)))
+		(list (getf this +view_x 0) (getf this +view_y 0)))
 
 	(defmethod :get_size (this)
 		; (. view :get_size) -> (width height)
-		(list (get-field this (const view_w) +int_size+)
-			(get-field this (const view_h) +int_size+)))
+		(list (getf this +view_w 0) (getf this +view_h 0)))
 
 	(defmethod :set_size (this width height)
 		; (. view :set_size width height) -> view
-		(set-field (set-field this
-			(const view_w) +int_size+ width)
-			(const view_h) +int_size+ height))
+		(setf (setf this +view_w width 0) +view_h height 0))
 
 	(defmethod :get_bounds (this)
 		; (. view :get_bounds) -> (x y width height)
-		(list (get-field this (const view_x) +int_size+)
-			(get-field this (const view_y) +int_size+)
-			(get-field this (const view_w) +int_size+)
-			(get-field this (const view_h) +int_size+)))
+		(list (getf this +view_x 0) (getf this +view_y 0)
+			(getf this +view_w 0) (getf this +view_h 0)))
 
 	(defmethod :set_bounds (this x y width height)
 		; (. view :set_size x y width height) -> view
-		(set-field (set-field (set-field (set-field this
-			(const view_x) +int_size+ x)
-			(const view_y) +int_size+ y)
-			(const view_w) +int_size+ width)
-			(const view_h) +int_size+ height))
+		(setf (setf (setf (setf this
+			+view_x x 0) +view_y y 0) +view_w width 0) +view_h height 0))
 
 	(defmethod :change (this x y width height)
 		; (. view :change x y width height) -> view
@@ -163,13 +166,13 @@
 
 	(defmethod :pref_size (this)
 		; (. view :pref_size) -> (width height)
-		(defq mw (get :min_width this) mh (get :min_height this))
+		(defq mw (def? :min_width this) mh (def? :min_height this))
 		(setd mw 0 mh 0)
 		(list mw mh))
 
 	(defmethod :layout (this)
 		; (. view :layout) -> view
 		(if (= (>> (get :color this) 24) 0xff)
-			(. this :set_flags +view_flag_opaque+ +view_flag_opaque+)
+			(. this :set_flags +view_flag_opaque +view_flag_opaque)
 			this))
 	)

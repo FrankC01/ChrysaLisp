@@ -1,11 +1,10 @@
-;imports
 (import "sys/lisp.inc")
 (import "class/lisp.inc")
 (import "gui/lisp.inc")
 
 (defq id t index 0 xv 4 yv 0 i 512
-	frames (map (lambda (_) (Canvas-from-file (cat "apps/freeball/staoball_" (str _) ".cpm") +load_flag_shared+)) (range 1 12))
-	sframes (map (lambda (_) (Canvas-from-file (cat "apps/freeball/staoball_s_" (str _) ".cpm") +load_flag_shared+)) (range 1 12)))
+	frames (map (lambda (_) (Canvas-from-file (cat "apps/freeball/staoball_" (str _) ".cpm") +load_flag_shared)) (range 1 12))
+	sframes (map (lambda (_) (Canvas-from-file (cat "apps/freeball/staoball_s_" (str _) ".cpm") +load_flag_shared)) (range 1 12)))
 
 (ui-root view (View) (:color 0)
 	(ui-element frame (elem 0 frames))
@@ -33,8 +32,8 @@
 			(:change_dirty x y (+ 8 sw) (+ 32 sh)))
 		(setq id (/= 0 (setq i (dec i))))
 		(while (mail-poll (list (task-mailbox)))
-			(and (< (get-long (defq msg (mail-read (task-mailbox))) ev_msg_target_id) 0)
-				(= (get-long msg ev_msg_type) ev_type_mouse)
+			(and (< (getf (defq msg (mail-read (task-mailbox))) +ev_msg_target_id) 0)
+				(= (getf msg +ev_msg_type) +ev_type_mouse)
 				(setq id nil)))
 		(task-sleep 40000))
 	(. view :hide))

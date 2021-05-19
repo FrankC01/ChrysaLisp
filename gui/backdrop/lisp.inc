@@ -5,47 +5,43 @@
 (import "gui/view/lisp.inc")
 
 (defclass Backdrop () (View)
-	; (Backdrop)-> backdrop
+	; (Backdrop) -> backdrop
+	(def this :style nil :spaceing 32)
 
 	(defmethod :draw (this)
 		; (. backdrop :draw) -> backdrop
 		(bind '(w h) (. this :get_size))
+		(defq spaceing (get :spaceing this))
 		(.-> this
 			(:ctx_set_color (get :color this))
 			(:ctx_filled_box 0 0 w h)
 			(:ctx_set_color (get :ink_color this)))
-		(cond
-			((= (defq style (get :style this)) 0)
-				;grid
-				(defq x (- (% (>> w 1) 32) 32) y 0)
+		(case (get :style this)
+			(:grid
+				(defq x (- (% (>> w 1) spaceing) spaceing) y 0)
 				(while (< x w)
 					(. this :ctx_filled_box x y 1 h)
-					(setq x (+ x 32)))
-				(setq y (- (% (>> h 1) 32) 32) x 0)
+					(setq x (+ x spaceing)))
+				(setq y (- (% (>> h 1) spaceing) spaceing) x 0)
 				(while (< y h)
 					(. this :ctx_filled_box x y w 1)
-					(setq y (+ y 32))))
-			((= style 1)
-				;plain
-				)
-			((= style 2)
-				;axis
+					(setq y (+ y spaceing))))
+			(:axis
 				(.-> this
 					(:ctx_filled_box (>> w 1) 0 1 h)
 					(:ctx_filled_box 0 (>> h 1) w 1))
-				(defq x (- (% (>> w 1) 32) 32) y (- (>> h 1) 16))
+				(defq x (- (% (>> w 1) spaceing) spaceing) y (- (>> h 1) (/ spaceing 2)))
 				(while (< x w)
-					(. this :ctx_filled_box x y 1 32)
-					(setq x (+ x 32)))
-				(setq y (- (% (>> h 1) 32) 32) x (- (>> w 1) 16))
+					(. this :ctx_filled_box x y 1 spaceing)
+					(setq x (+ x spaceing)))
+				(setq y (- (% (>> h 1) spaceing) spaceing) x (- (>> w 1) (/ spaceing 2)))
 				(while (< y h)
-					(. this :ctx_filled_box x y 32 1)
-					(setq y (+ y 32))))
-			((= style 3)
-				;lines
+					(. this :ctx_filled_box x y spaceing 1)
+					(setq y (+ y spaceing))))
+			(:lines
 				(defq y 0)
 				(while (< y h)
 					(. this :ctx_filled_box 0 y w 1)
-					(setq y (+ y 32)))))
+					(setq y (+ y spaceing)))))
 		this)
 	)

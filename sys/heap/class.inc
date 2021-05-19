@@ -5,26 +5,24 @@
 ; heap static class
 ;;;;;;;;;;;;;;;;;;;
 
-(def-class 'sys_heap)
-(dec-method :init 'sys/heap/init :static '(r0 r1 r2) '(r0 r1))
-(dec-method :deinit 'sys/heap/deinit :static '(r0) '(r0))
-(dec-method :alloc 'sys/heap/alloc :static '(r0) '(r0 r1))
-(dec-method :free 'sys/heap/free :static '(r0 r1))
-(dec-method :collect 'sys/heap/collect :static '(r0) '(r0))
+(def-class sys_heap nil
+	(dec-method :init sys/heap/init :static (r0 r1 r2) (r0 r1))
+	(dec-method :deinit sys/heap/deinit :static (r0) (r0))
+	(dec-method :alloc sys/heap/alloc :static (r0) (r0 r1))
+	(dec-method :free sys/heap/free :static (r0 r1))
+	(dec-method :collect sys/heap/collect :static (r0) (r0)))
 
 ;;;;;;;;;;;;;;;;;
 ; heap structures
 ;;;;;;;;;;;;;;;;;
 
-(def-struct 'hp_heap)
-	(ptr 'free_flist 'block_flist)
-	(uint 'cellsize 'blocksize)
-(def-struct-end)
+(def-struct hp_heap 0
+	(ptr free_flist block_flist)
+	(uint cellsize blocksize))
 
-(def-struct 'hp_block 'ln_fnode)
-	(ptr 'free_flist 'free_flist_tail)
-	(uint 'blocksize 'cellcnt)
-(def-struct-end)
+(def-struct hp_block ln_fnode_size
+	(ptr free_flist free_flist_tail)
+	(uint blocksize cellcnt))
 
 ;;;;;;;;;;;;;;;;
 ; inline methods

@@ -5,19 +5,20 @@
 (import "gui/slider/lisp.inc")
 
 ;scroll flags
-(defq +scroll_flag_vertical+ 1 +scroll_flag_horizontal+ 2)
+(bits +scroll_flag 0
+	(bit vertical horizontal))
 
 ;scroll flag combos
-(defq +scroll_flag_both+ (logior +scroll_flag_vertical+ +scroll_flag_horizontal+))
+(defq +scroll_flag_both (num-intern (logior +scroll_flag_vertical +scroll_flag_horizontal)))
 
 (defclass Scroll (flags) (View)
 	; (Scroll flags) -> scroll
 	(def this :vslider nil :hslider nil :child nil)
-	(when (/= 0 (logand flags +scroll_flag_vertical+))
+	(when (/= 0 (logand flags +scroll_flag_vertical))
 		(def this :vslider (defq slider (Slider)))
 		(. slider :connect (. this :get_id))
 		(. this :add_front slider))
-	(when (/= 0 (logand flags +scroll_flag_horizontal+))
+	(when (/= 0 (logand flags +scroll_flag_horizontal))
 		(def this :hslider (defq slider (Slider)))
 		(. slider :connect (. this :get_id))
 		(. this :add_front slider))
@@ -30,12 +31,12 @@
 
 	(defmethod :action (this data)
 		; (. scroll :action data) -> scroll
-		(.-> this :layout (:set_flags +view_flag_dirty_all+ +view_flag_dirty_all+)))
+		(.-> this :layout (:set_flags +view_flag_dirty_all +view_flag_dirty_all)))
 
 	(defmethod :pref_size (this)
 		; (. scroll :pref_size) -> (width height)
 		(defq hslider (get :hslider this) vslider (get :vslider this)
-			mw (get :min_width this) mh (get :min_height this))
+			mw (def? :min_width this) mh (def? :min_height this))
 		(setd mw 0 mh 0)
 		(if vslider
 			(setq mw (+ mw (pop (. vslider :pref_size)))))

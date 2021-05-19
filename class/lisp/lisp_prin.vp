@@ -13,10 +13,11 @@
 	;trashes
 	;r1-r14
 
-	(ptr 'this 'value)
-	(union
-		(ptr 'args)
-		(pptr 'iter_begin 'iter_end))
+	(def-vars
+		(ptr this value)
+		(union
+			(ptr args)
+			(pptr iter_begin iter_end)))
 
 	(push-scope)
 	(entry 'lisp :lisp_prin {this, args})
@@ -35,7 +36,7 @@
 			(call 'lisp :repl_print {this, this->lisp_stdout, value})
 		(endif)
 		(assign {iter_begin, iter_end} '(r1 r2))
-		(vp-add-cr +ptr_size+ r1)
+		(vp-add-cr +ptr_size r1)
 	(loop-end)
 	(call 'obj :ref {value})
 

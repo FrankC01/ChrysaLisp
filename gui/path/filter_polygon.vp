@@ -12,9 +12,10 @@
 	;trashes
 	;r1-r14
 
-	(ptr 'this 'that)
-	(pptr 'iter_begin 'iter_end)
-	(int 'eps)
+	(def-vars
+		(ptr this that)
+		(pptr iter_begin iter_end)
+		(int eps))
 
 	(push-scope)
 	(entry 'path :filter_polygon {this, that, eps})
@@ -26,12 +27,12 @@
 	(vec-load 2 {iter_end, iter_begin})
 	(vec-dup 2)
 	(vec-dif 2)
-	(vpif (list (elem 0 (vec-pop 1)) '> (* 2 +long_size+)))
+	(vpif (list (elem 0 (vec-pop 1)) '> (* 2 +long_size)))
 		(vec-load 1 {eps})
 		(vec-fsquare 1)
 		(bind '(e i x) (vec-top 3))
 		(vec-load-long 2 i)
-		(vec-load-long 2 e (* -2 +long_size+))
+		(vec-load-long 2 e (* -2 +long_size))
 		(vec-fdistance-squared 2)
 		(vpif (list (elem 0 (vec-pop 1)) '< x))
 			(call 'path :pop_back2 {this})

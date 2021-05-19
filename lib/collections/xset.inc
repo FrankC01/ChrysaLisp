@@ -2,6 +2,9 @@
 ; generic hash set object
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;module
+(env-push)
+
 (defmacro xset-slot ()
 	`(defq x (get :buckets this)
 		b (% ((get :hash_fnc this) key) (get :num_buckets this))
@@ -111,10 +114,13 @@
 		this)
 	)
 
+;module
+(export (penv) 
+	*class_xset* xset xset?)
+(env-pop)
+
 (defun xset-k (&rest _)
 	; (xset-k [key ...]) -> xset
 	(defq this (xset))
 	(each (# (. this :insert %0)) _)
 	this)
-
-(undef (env) 'xset-slot)

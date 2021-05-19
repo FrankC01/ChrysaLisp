@@ -1,4 +1,4 @@
-# Assignment
+# VP Assignment
 
 This document covers how the `(assign)` function is used to copy parameter
 lists, provide easy access to resource binding operators and invoke the
@@ -28,8 +28,8 @@ Let's start with a simple example.
 	(assign '(r0 r1 42) '(r1 r2 r3))
 ```
 
-We wish to assign register r0 to r1 and register r1 to r2 and the constant 42
-to r3. Sounds simple enough. So we just emit:
+We wish to assign register `r0` to `r1` and register `r1` to `r2` and the
+constant `42` to `r3`. Sounds simple enough. So we just emit:
 
 ```vdu
 	(vp-cpy-rr r0 r1)
@@ -37,12 +37,13 @@ to r3. Sounds simple enough. So we just emit:
 	(vp-cpy-cr 42 r3)
 ```
 
-Job done, yes ? Err, no. You've just corrupted what was in r1 prior to copying
-it to r2 ! The `(assign)` function does a topological sort on the parameters
-you provide to make sure this does not happen ! If it cannot guarantee a cycle
-free set of copy instructions then it will throw an error and expect you to
-sort the problem out. This happens far less often than you might imagine, but
-occasionally you will need to break the cycle with a temp register.
+Job done, yes ? Err, no. You've just corrupted what was in `r1` prior to
+copying it to `r2` ! The `(assign)` function does a topological sort on the
+parameters you provide to make sure this does not happen ! If it cannot
+guarantee a cycle free set of copy instructions then it will throw an error and
+expect you to sort the problem out. This happens far less often than you might
+imagine, but occasionally you will need to break the cycle with a temp
+register.
 
 The above example actually gets emitted as:
 
@@ -125,8 +126,8 @@ Will emit:
 Passing a string parameter will invoke the C-Script parser and compiler ! This
 is where things start to get quite high level for an assembler ! This basic C
 style expression compiler is just an assembler macro set, you can look at the
-implementation in detail in the `sys/code.inc` file. It's quite a simple, parse
--> reverse-polish -> compile -> optimise -> emit.
+implementation in detail in the `lib/asm/cscript.inc` file. It's quite a
+simple, tokenize -> reverse-polish -> compile -> optimise -> emit.
 
 While it's possible to use the compilation to do basic things like math, it
 really starts to get interesting when combined with some other functions that
@@ -136,25 +137,27 @@ the same as Lisp level symbols, they are managed by a few scope creation and
 variable declaration functions.
 
 ```vdu
-	(byte 'x 'y ...)
-	(ubyte 'x 'y ...)
-	(short 'x 'y ...)
-	(ushort 'x 'y ...)
-	(int 'x 'y ...)
-	(uint 'x 'y ...)
-	(long 'x 'y ...)
-	(ulong 'x 'y ...)
-	(ptr 'this 'that ...)
-	(pptr 'p_this 'p_that ...)
-	(pbyte 'p_x 'p_y ...)
-	(pubyte 'p_x 'p_y ...)
-	(pshort 'p_x 'p_y ...)
-	(pushort 'p_x 'p_y ...)
-	(pint 'p_x 'p_y ...)
-	(puint 'p_x 'p_y ...)
-	(plong 'p_x 'p_y ...)
-	(pulong 'p_x 'p_y ...)
-	(union (...) (...) ...)
+	(def-vars
+		(byte x y ...)
+		(ubyte x y ...)
+		(short x y ...)
+		(ushort x y ...)
+		(int x y ...)
+		(uint x y ...)
+		(long x y ...)
+		(ulong x y ...)
+		(ptr this that ...)
+		(pptr p_this p_that ...)
+		(pbyte p_x p_y ...)
+		(pubyte p_x p_y ...)
+		(pshort p_x p_y ...)
+		(pushort p_x p_y ...)
+		(pint p_x p_y ...)
+		(puint p_x p_y ...)
+		(plong p_x p_y ...)
+		(pulong p_x p_y ...)
+		(union (...) (...) ...)
+		...)
 ```
 
 After declaring the variables and their types, you follow this with a
@@ -183,14 +186,14 @@ These are in addition to the C/C++ style operators.
 
 ## C-Script function example
 
-This is the system level mailbox declaration function. `sys_mail::declare`
+This is the system level mailbox declaration function. `'sys_mail :declare`
 
 Register inputs and outputs are declared in the `sys/mail/class.inc` file just
 as with a VP function.
 
 ```vdu
-(def-class 'sys_mail)
-(dec-method :declare 'sys/mail/declare :static '(r0 r1))
+(def-class sys_mail nil
+	(dec-method :declare sys/mail/declare :static (r0 r1)))
 ```
 
 Implementation of the function is defined in the `sys/mail/class.vp` file.
@@ -203,8 +206,9 @@ Implementation of the function is defined in the `sys/mail/class.vp` file.
 	;trashes
 	;r0-r14
 
-	(ptr 'statics 'name)
-	(ulong 'id)
+	(def-vars
+		(ptr statics name)
+		(ulong id))
 
 	(push-scope)
 	(entry 'sys_mail :declare {name, id})
@@ -245,12 +249,12 @@ functions final instructions. Be sure to `(setq *debug_inst* nil)` and `(setq
 *debug_emit* nil)` after the section of code or function to turn emit printing
 off.
 
-This is the output from wrapping the 'hmap 'insert line in the example above:
+This is the output from wrapping the `'hmap :insert` line in the example above:
 
 ```vdu
-	(let ((*debug_inst* t))
-		(call 'hmap :insert {statics->statics_sys_mail_service_map, name, id})
-	)
+(let ((*debug_inst* t))
+	(call 'hmap :insert {statics->statics_sys_mail_service_map, name, id})
+)
 ```
 
 ```vdu
@@ -277,8 +281,7 @@ compile option for the system. The various mode are:
 
 * 0 release, strip all error checking
 * 1 normal, with error checking
-* 2 profiling, with error checking and object stats
-* 3 guarded, with error checking, object stats and guard pages
+* 2 guarded, with error checking, object stats and guard pages
 
 The `(errorcases)`, `(errorif)` and `(errorifnot)` macros alow you to
 conditionally include source code if the `*debug_mode*` is greater than 0.

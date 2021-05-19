@@ -2,6 +2,9 @@
 ; options prosessing
 ;;;;;;;;;;;;;;;;;;;;
 
+;module
+(env-push)
+
 (defun options-print (&rest _)
 	; (options-print &rest _)
 	(stream-flush (write (io-stream 'stdout)
@@ -20,7 +23,9 @@
 		;look for "-", pass through if not
 		(defq arg (elem 0 args) args (slice 1 -1 args))
 		(if (starts-with "-" arg)
-			(if (defq opt_entry (or (options-find optlist arg) (options-find optlist "-h")))
+			(if (defq opt_entry (or
+					(options-find optlist arg)
+					(options-find optlist "-h")))
 				;found an entry, else help
 				(cond
 					((str? (elem 1 opt_entry))
@@ -33,3 +38,8 @@
 				(setq args '() out_args nil))
 			;arg to output
 			(push out_args arg))) out_args)
+
+;module
+(export (penv)
+	options)
+(env-pop)

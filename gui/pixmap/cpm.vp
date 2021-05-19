@@ -5,15 +5,14 @@
 (include "class/array/class.inc")
 (include "lib/consts/colors.inc")
 
-(def-struct 'cpm)
-	(uint 'ident)		;ident '.CPM' or '.FLM'
-	(uint 'bytes)		;0 if not known, else total size
-	(uint 'version)		;version number
-	(uint 'type)		;image type
-	(uint 'width)		;image w
-	(uint 'height)		;image h
-	(uint 'trans)		;image transparent colour
-(def-struct-end)
+(def-struct cpm 0
+	(uint ident)		;ident .CPM or .FLM
+	(uint bytes)		;0 if not known, else total size
+	(uint version)		;version number
+	(uint type)			;image type
+	(uint width)		;image w
+	(uint height)		;image h
+	(uint trans))		;image transparent colour
 
 (def-method 'pixmap :info_cpm)
 	;inputs
@@ -25,9 +24,8 @@
 	;trashes
 	;r0-r14
 
-	(def-struct 'local)
-		(struct 'header 'cpm)
-	(def-struct-end)
+	(def-struct local 0
+		(struct header cpm_size))
 
 	(vp-alloc local_size)
 	(entry 'pixmap :info_cpm '(r0))
@@ -62,12 +60,13 @@
 	;trashes
 	;r0-r14
 
-	(ptr 'this 'stream)
-	(puint 'data 'data_end)
-	(ulong 'bit_pool)
-	(struct 'header 'cpm)
-	(int 'length 'bit_pool_size 'bits)
-	(ulong 'col)
+	(def-vars
+		(ptr this stream)
+		(puint data data_end)
+		(ulong bit_pool)
+		(struct header cpm_size)
+		(int length bit_pool_size bits)
+		(ulong col))
 
 	;save inputs
 	(push-scope)
@@ -115,10 +114,10 @@
 						(gotoif (list data '>= data_end) 'error)
 						(vp-cpy-ri-i col data 0)
 						(vp-sub-cr 1 len)
-						(vp-add-cr +int_size+ data)
+						(vp-add-cr +int_size data)
 					(loop-until (list len '= 0))
 				(else)
-					(vp-shl-cr (log2 +int_size+) len)
+					(vp-shl-cr (log2 +int_size) len)
 					(vp-add-rr len data)
 				(endif)
 			(else)
@@ -136,7 +135,7 @@
 						(vp-cpy-ri-i col data 0)
 					(endif)
 					(vp-sub-cr 1 len)
-					(vp-add-cr +int_size+ data)
+					(vp-add-cr +int_size data)
 					(assign (list data) {data})
 				(loop-until (list len '= 0))
 			(endif)
@@ -167,12 +166,13 @@
 	;trashes
 	;r0-r14
 
-	(ptr 'this 'stream)
-	(puint 'data 'data1 'data2)
-	(ulong 'bit_pool)
-	(struct 'header 'cpm)
-	(int 'bit_pool_size)
-	(uint 'format 'bits 'i 'j 'state 'len 'col 'next_col)
+	(def-vars
+		(ptr this stream)
+		(puint data data1 data2)
+		(ulong bit_pool)
+		(struct header cpm_size)
+		(int bit_pool_size)
+		(uint format bits i j state len col next_col))
 
 	;save inputs
 	(push-scope)
@@ -199,7 +199,7 @@
 		(switch)
 		(vpcase {state = 0})
 			;no state
-			(call 'pixmap :to_argb {data[i * +int_size+]} {col})
+			(call 'pixmap :to_argb {data[i * +int_size]} {col})
 			(call 'pixmap :from_argb32 {col, format} {col})
 			(assign {i} {j})
 			(assign {i + 1} {i})
@@ -208,7 +208,7 @@
 				(call 'stream :write_bits {stream, col, bits, bit_pool, bit_pool_size} {_, bit_pool, bit_pool_size})
 				(break 'pixloop)
 			(endif)
-			(call 'pixmap :to_argb {data[i * +int_size+]} {next_col})
+			(call 'pixmap :to_argb {data[i * +int_size]} {next_col})
 			(call 'pixmap :from_argb32 {next_col, format} {next_col})
 			(assign {2} {state})
 			(continueif {col /= next_col} 'pixloop)
@@ -216,7 +216,7 @@
 			(continue 'pixloop)
 		(default)
 			;repeat state
-			(call 'pixmap :to_argb {data[i * +int_size+]} {next_col})
+			(call 'pixmap :to_argb {data[i * +int_size]} {next_col})
 			(call 'pixmap :from_argb32 {next_col, format} {next_col})
 			(assign {i + 1} {i})
 			(nextcaseif {state /= 1})
@@ -240,12 +240,12 @@
 			(vpcase {i = len || (i - j) = 0x80})
 			(vp-label 'doblk)
 				(call 'stream :write_bits {stream, i - j - 1, 8, bit_pool, bit_pool_size} {_, bit_pool, bit_pool_size})
-				(assign {&data[j * +int_size+], &data[i * +int_size+]} {data1, data2})
+				(assign {&data[j * +int_size], &data[i * +int_size]} {data1, data2})
 				(loop-start)
 					(call 'pixmap :to_argb {*data1} {col})
 					(call 'pixmap :from_argb32 {col, format} {col})
 					(call 'stream :write_bits {stream, col, bits, bit_pool, bit_pool_size} {_, bit_pool, bit_pool_size})
-				(loop-until {(data1 + +int_size+ => data1) = data2})
+				(loop-until {(data1 + +int_size => data1) = data2})
 				(assign {0} {state})
 				(continue 'pixloop)
 			(endswitch)
@@ -268,10 +268,11 @@
 	;trashes
 	;r1-r14
 
-	(ptr 'this)
-	(puint 'data 'data_end)
-	(ulong 'col)
-	(int 'length)
+	(def-vars
+		(ptr this)
+		(puint data data_end)
+		(ulong col)
+		(int length))
 
 	;save inputs
 	(push-scope)
@@ -296,7 +297,7 @@
 				;skip
 				(assign {data, data_end} (list data data_end))
 				(vp-sub-cr 256 len)
-				(vp-shl-cr (log2 +int_size+) len)
+				(vp-shl-cr (log2 +int_size) len)
 				(vp-sub-rr len data)
 			(else)
 				;block of pixels
@@ -310,7 +311,7 @@
 					(breakif (list data '>= data_end) 'error)
 					(vp-cpy-ri-i col data 0)
 					(vp-sub-cr 1 len)
-					(vp-add-cr +int_size+ data)
+					(vp-add-cr +int_size data)
 					(assign (list data) {data})
 				(loop-until (list len '= 0))
 			(endif)
@@ -339,11 +340,11 @@
 
 	(switch)
 	(vpcase (list pix '= 32))
-		(vp-cpy-cr +argb_black+ pix)
+		(vp-cpy-cr +argb_black pix)
 		(vp-xor-rr pix col)
 		(break)
 	(vpcase (list pix '= 24))
-		(vp-cpy-cr +argb_black+ pix)
+		(vp-cpy-cr +argb_black pix)
 		(vp-add-rr pix col)
 		(break)
 	(vpcase (list pix '= 16))
@@ -365,7 +366,7 @@
 		(vp-shr-cr 1 gl)
 		(vp-shl-cr 3 bh)
 		(vp-shr-cr 2 bl)
-		(vp-cpy-cr +argb_black+ col)
+		(vp-cpy-cr +argb_black col)
 		(vp-add-rr rh rl)
 		(vp-add-rr gh gl)
 		(vp-add-rr bh bl)
@@ -407,16 +408,16 @@
 		(vp-cpy-rr col bl)
 		(vp-shl-cr 16 rl)
 		(vp-shl-cr 8 gl)
-		(vp-cpy-cr +argb_black+ col)
+		(vp-cpy-cr +argb_black col)
 		(vp-add-rr rl gl)
 		(vp-add-rr bl col)
 		(vp-add-rr gl col)
 		(break)
 	(default)
 		(vpif (list col '= 0))
-			(vp-cpy-cr +argb_black+ col)
+			(vp-cpy-cr +argb_black col)
 		(else)
-			(vp-cpy-cr +argb_white+ col)
+			(vp-cpy-cr +argb_white col)
 		(endif)
 	(endswitch)
 
@@ -440,7 +441,7 @@
 
 	(switch)
 	(vpcase (list pix '= 32))
-		(vp-cpy-cr +argb_black+ pix)
+		(vp-cpy-cr +argb_black pix)
 		(vp-xor-rr pix col)
 		(break)
 	(vpcase (list pix '= 24))

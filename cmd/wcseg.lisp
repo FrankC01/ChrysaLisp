@@ -1,4 +1,3 @@
-;imports
 (import "class/lisp.inc")
 (import "lib/argparse/argparse.inc")
 
@@ -56,7 +55,7 @@
                   :help "word counter"
                   :handler main-callback
                   :validator validate-none
-                  :counter +no_count+)
+                  :counter +no_count)
 
   ; File name argument
   (add-argument

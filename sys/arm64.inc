@@ -84,19 +84,19 @@
 					(+ (<< n 12) (<< _r 6) (logand _s 0x3f)))))))
 
 (defun reg (r)
-	(find-rev r '(r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15
+	(find r '(r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15
 		r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 rsp)))
 
 (each (lambda (_) (defcvar _ _)) '(r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30))
 (defcvar 'stack_align 16 'stack_state '(r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r30))
 
 (defun stack-init ()
-	(defq tk_state_size (* +ptr_size+ (length stack_state)))
+	(defq tk_state_size (* +ptr_size (length stack_state)))
 	(vp-and-cr (neg stack_align) r1)
 	(vp-sub-cr tk_state_size r1)
 	(f-bind 'sys_task :stop r2)
-	(vp-cpy-ri r4 r1 (- tk_state_size +ptr_size+))
-	(vp-cpy-ri r2 r1 (- tk_state_size (* +ptr_size+ 2)))
+	(vp-cpy-ri r4 r1 (- tk_state_size +ptr_size))
+	(vp-cpy-ri r2 r1 (- tk_state_size (* +ptr_size 2)))
 	(vp-lea-p 'start r4)
 	(vp-cpy-ri r4 r1 0)
 	(goto 'funcexit)
@@ -114,12 +114,12 @@
 			(emit-int (+ 0xa9bf0000
 				(<< (reg (elem 0 b)) 10) (<< (reg rsp) 5) (reg (elem 1 b)))))
 		(t
-			(emit-sub-cr (align (* +ptr_size+ l) stack_align) rsp)
+			(emit-sub-cr (align (* +ptr_size l) stack_align) rsp)
 			(defq _ l)
 			(while (>= (setq _ (- _ 2)) 0)
 				(emit-int (+ 0xa9000000 (<< (- l _ 2) 15)
 					(<< (reg (elem _ b)) 10) (<< (reg rsp) 5) (reg (elem (inc _) b)))))
-			(if (/= -2 _) (emit-cpy-ri (elem 0 b) rsp (* +ptr_size+ (dec l)))))))
+			(if (/= -2 _) (emit-cpy-ri (elem 0 b) rsp (* +ptr_size (dec l)))))))
 
 (defun emit-pop (&rest b)
 	(cond
@@ -134,8 +134,8 @@
 			(while (>= (setq _ (- _ 2)) 0)
 				(emit-int (+ 0xa9400000 (<< (- l _ 2) 15)
 					(<< (reg (elem _ b)) 10) (<< (reg rsp) 5) (reg (elem (inc _) b)))))
-			(if (/= -2 _) (emit-cpy-ir rsp (* +ptr_size+ (dec l)) (elem 0 b)))
-			(emit-add-cr (align (* +ptr_size+ l) stack_align) rsp))))
+			(if (/= -2 _) (emit-cpy-ir rsp (* +ptr_size (dec l)) (elem 0 b)))
+			(emit-add-cr (align (* +ptr_size l) stack_align) rsp))))
 
 (defun emit-beq (l d) (emit-branch 0x0 l))
 (defun emit-bne (l d) (emit-branch 0x1 l))
@@ -248,7 +248,7 @@
 
 (defun emit-cpy-ir-ub (s c d) (emit-iru 0 0x38400000 s c d))
 (defun emit-cpy-ir-us (s c d) (emit-iru 1 0x78400000 s c d))
-(defun emit-cpy-ir-ui (s c d) (emit-iru 2 0xb8400000 s c d))
+(defun emit-cpy-ir-ui (s c d) (emit-ir 2 0xb8400000 s c d))
 
 (defun emit-cpy-rd (s d1 d2) (emit-rd 0xf8206800 s d2 d1))
 (defun emit-cpy-rd-b (s d2 d1) (emit-rd 0x38206800 s d2 d1))

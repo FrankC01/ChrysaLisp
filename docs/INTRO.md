@@ -5,7 +5,7 @@
 First of all you need to download the zip from Github or clone the Github repo
 using your `git clone` command.
 
-```
+```code
 git clone https://github.com/vygr/ChrysaLisp.git
 ```
 
@@ -25,7 +25,7 @@ over into your */Library/Frameworks* folder.
 You should be able to use your package manager to install via `apt-get` or
 similar with:
 
-```
+```code
 sudo apt-get install libsdl2-dev
 ```
 
@@ -68,7 +68,7 @@ After a successful `make` of the platform bootstrap you can now run the TUI
 
 For a TUI or GUI type:
 
-```
+```code
 ./run_tui.sh
 ./run.sh
 ```
@@ -80,7 +80,8 @@ provided in the README.md file.
 ### Windows 64bit
 
 For command line (batch) usage:
-```
+
+```code
 .\run_tui.bat
 .\run.bat
 ```
@@ -89,16 +90,17 @@ To use PowerShell:
 First configure your PowerShell installation to allow scripts to run
 
 Open PowerShell as administrator (only needs to be done once)
-```
+
+```code
 Set-ExecutionPolicy -ExecutionPolicy Bypass
 ```
 
 Run PowerShell
-```
+
+```code
 .\run_tui.ps1
 .\run.ps1
 ```
-
 
 ## Stopping
 
@@ -110,13 +112,13 @@ simulate the network of virtual CPU's, use:
 
 ### Mac, Linux, PI64
 
-```
+```code
 ./stop.sh
 ```
 
 ### Windows 64bit
 
-```
+```code
 .\stop.bat
 ```
 
@@ -127,41 +129,40 @@ compile the system, create a new boot image, cross compile for the various
 supported platforms, create their boot images and scan the source files to
 build the reference documentation.
 
-```
-make docs
-```
-
-Scan source files and create the reference documents.
-
-```
+```code
 make
 ```
 
 Compile any files required based on the age of edited source files and produced
 binaries.
 
-```
+```code
 make all
 ```
 
 Compile all source files, regardless of ages of files.
 
-```
-make snapshot
+```code
+make docs
 ```
 
-Create a boot_image file from the function binaries within the *obj/*
-directory.
+Scan source files and create the reference documents.
 
-```
+```code
 make platforms
 ```
 
 Compile and build all platforms not just the current platform.
 
+```code
+make it
+```
+
+All of the above.
+
 You can use combinations if you like. Such as:
 
-```
+```code
 make all platforms boot
 ```
 
@@ -172,7 +173,7 @@ for all platforms.
 
 At a ChrysaLisp terminal prompt type:
 
-```
+```code
 lisp
 ```
 

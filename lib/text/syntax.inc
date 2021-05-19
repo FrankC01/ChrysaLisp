@@ -2,41 +2,49 @@
 ; syntax highlighter object
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import "sys/symbols.inc")
 (import "gui/canvas/lisp.inc")
+(import "lib/consts/chars.inc")
 (import "lib/consts/colors.inc")
 
-(defmacro is_number_char (_)
-	(list 'find-rev _ "0123456789"))
+;module
+(env-push)
 
-(defmacro is_allowed_number_char (_)
-	(list 'find-rev _ (const (cat
+(defq +is_number_char
+		"0123456789"
+	+is_allowed_number_char (cat
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"abcdefghijklmnopqrstuvwxyz"
-		".0123456789"))))
-
-(defmacro is_symbol_char (_)
-	(list 'find-rev _ (const (cat
-		"!@#$%^&*_+-=[];\:|,./<>?`~'"
+		".0123456789")
+	+is_symbol_char (cat
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"0123456789"
-		"abcdefghijklmnopqrstuvwxyz"))))
+		"!@#$%^&*_+-=[];\:|./<>?`~'"
+		"abcdefghijklmnopqrstuvwxyz"))
+
+(defmacro is_number_char (_)
+	(list 'find-rev _ +is_number_char))
+
+(defmacro is_allowed_number_char (_)
+	(list 'find-rev _ +is_allowed_number_char))
+
+(defmacro is_symbol_char (_)
+	(list 'find-rev _ +is_symbol_char))
 
 (defclass Syntax () nil
 	; (Syntax) -> syntax
 	;default colours and state
 	(def this :keywords (defq keywords (env -31)) :state :text
-		:ink_keyword1 (<< (canvas-from-argb32 +argb_magenta+ 15) 32)
-		:ink_keyword2 (<< (canvas-from-argb32 +argb_red+ 15) 32)
-		:ink_keyword3 (<< (canvas-from-argb32 +argb_green+ 15) 32)
-		:ink_keyword4 (<< (canvas-from-argb32 +argb_cyan+ 15) 32)
-		:ink_strings (<< (canvas-from-argb32 +argb_orange+ 15) 32)
-		:ink_numbers (<< (canvas-from-argb32 +argb_yellow+ 15) 32)
-		:ink_keysyms (<< (canvas-from-argb32 +argb_cyan+ 15) 32)
-		:ink_constants (<< (canvas-from-argb32 +argb_yellow+ 15) 32)
-		:ink_globals (<< (canvas-from-argb32 +argb_steel+ 15) 32)
-		:ink_comments (<< (canvas-from-argb32 +argb_grey12+ 15) 32)
-		:ink_text (<< (canvas-from-argb32 +argb_white+ 15) 32))
+		:ink_keyword1 (<< (canvas-from-argb32 +argb_magenta 15) 32)
+		:ink_keyword2 (<< (canvas-from-argb32 +argb_red 15) 32)
+		:ink_keyword3 (<< (canvas-from-argb32 +argb_green 15) 32)
+		:ink_keyword4 (<< (canvas-from-argb32 +argb_cyan 15) 32)
+		:ink_strings (<< (canvas-from-argb32 +argb_orange 15) 32)
+		:ink_numbers (<< (canvas-from-argb32 +argb_yellow 15) 32)
+		:ink_keysyms (<< (canvas-from-argb32 +argb_cyan 15) 32)
+		:ink_constants (<< (canvas-from-argb32 +argb_yellow 15) 32)
+		:ink_globals (<< (canvas-from-argb32 +argb_steel 15) 32)
+		:ink_comments (<< (canvas-from-argb32 +argb_grey12 15) 32)
+		:ink_text (<< (canvas-from-argb32 +argb_white 15) 32))
 	;defaults from boot environment
 	(defq e (penv))
 	(while (penv e) (setq e (penv e)))
@@ -48,12 +56,20 @@
 		(tolist e))
 	(each (lambda (k)
 			(def keywords k (get :ink_keyword4 this)))
-		'(t nil &rest &optional))
+		'(t nil &rest &optional
+			r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 rsp
+			byte ubyte short ushort int uint long ulong ptr union struct
+			pbyte pubyte pshort pushort pint puint plong pulong pptr
+			nodeid netid offset enum bit))
 
 	(defmethod :set_state (this state)
 		; (. syntax :set_state state) -> syntax
 		(set this :state state)
 		this)
+
+	(defmethod :get_state (this)
+		; (. syntax :get_state) -> state
+		(get :state this))
 
 	(defmethod :set_colors (this colors)
 		; (. syntax :set_colors xmap) -> syntax
@@ -73,22 +89,10 @@
 				(case state
 					(:text
 						(cond
-							((eql c ":")
+							((defq _ (find-rev c (const (cat (ascii-char 34) "{:;"))))
 								(push state_list state)
 								(push token_list token)
-								(setq token (list c) state :keysym))
-							((eql c ";")
-								(push state_list state)
-								(push token_list token)
-								(setq token (list c) state :comment))
-							((eql c (ascii-char 34))
-								(push state_list state)
-								(push token_list token)
-								(setq token (list c) state :string1))
-							((eql c "{")
-								(push state_list state)
-								(push token_list token)
-								(setq token (list c) state :string2))
+								(setq token (list c) state (elem _ '(:string1 :string2 :keysym :comment))))
 							((is_number_char c)
 								(push state_list state)
 								(push token_list token)
@@ -97,7 +101,7 @@
 								(push state_list state)
 								(push token_list token)
 								(setq token (list c) state :symbol))
-							(t	(push token c)))
+							((push token c)))
 						(setq c nil))
 					((:symbol :keysym)
 						(cond
@@ -120,7 +124,7 @@
 								(setq token (list) state :text))))
 					(:string1
 						(push token c)
-						(when (eql c (ascii-char 34))
+						(when (eql c (ascii-char +char_double_quote))
 							(push state_list state)
 							(push token_list token)
 							(setq token (list) state :text))
@@ -173,6 +177,47 @@
 		(each (lambda (token ink)
 				(push state_list (apply array (map (# (+ (code %0) ink)) token))))
 			token_list col_list)
-		(apply cat state_list)))
+		(apply cat state_list))
 
-(undef (env) 'is_number_char 'is_allowed_number_char 'is_symbol_char 'is_text_char)
+	(defmethod :expand_tabs (this string tab_width)
+		; (. syntax :expand_tabs string tab_width) -> string
+		;tab expantion of string
+		(cond
+			((> (length string) 0)
+				(defq cursor 0)
+				(apply cat (map (#
+					(cond
+						((eql %0 (ascii-char +char_tab))
+							(defq padding (- tab_width (% cursor tab_width)))
+							(setq cursor (+ cursor padding))
+							(slice 0 padding "        "))
+						(t	(setq cursor (inc cursor))
+							%0))) string)))
+			(string)))
+
+	(defmethod :compress_tabs (this string tab_width)
+		; (. syntax :compress_tabs string tab_width) -> string
+		;tab compression of string
+		(cond
+			((> (length string) 0)
+				(defq whitespace "")
+				(apply cat (reduce (#
+					(cond
+						((eql whitespace "X")
+							(push %0 %1))
+						((eql %1 " ")
+							(setq whitespace (cat whitespace " "))
+							(when (= (length whitespace) tab_width)
+								(setq whitespace "")
+								(push %0 (ascii-char +char_tab)))
+							%0)
+						(t	(push %0 whitespace %1)
+							(setq whitespace "X")
+							%0))) string (list))))
+			(string)))
+	)
+
+;module
+(export (penv)
+	*class_Syntax* Syntax Syntax?)
+(env-pop)

@@ -6,10 +6,9 @@
 (include "lib/consts/chars.inc")
 
 (defun defset (_ p)
-	(def-struct 'local)
-		(ptr 'this 'args 'env)
-		(pptr 'iter_begin 'iter_end)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this args env)
+		(pptr iter_begin iter_end))
 	(vp-alloc local_size)
 	(entry 'hmap _ '(r0 r1))
 	(assign '(r0 r1) '((rsp local_this) (rsp local_args)))
@@ -20,7 +19,7 @@
 	(gotoif '(r2 = 0) 'error1))
 	(class/array/get_both r1 r3 r2)
 	(array-get-args r3 '(r0))
-	(vp-add-cr +ptr_size+ r3)
+	(vp-add-cr +ptr_size r3)
 	(assign '(r0 r2) '((rsp local_env) (rsp local_iter_end)))
 (errorcases
 	(call 'obj :inst_of `(r0 (@ ,(f-path 'hmap :vtable))) '(r0 r1))
@@ -35,9 +34,9 @@
 		(assign '((rsp local_env)) '(r0))
 		(exec p)
 		(assign '((rsp local_iter_begin) (rsp local_iter_end)) '(r3 r2))
-		(vp-add-cr (* +ptr_size+ 2) r3)
+		(vp-add-cr (* +ptr_size 2) r3)
 	(loop-until '(r3 = r2))
-	(assign `((r2 ,(neg +ptr_size+))) '(r1))
+	(assign `((r2 ,(neg +ptr_size))) '(r1))
 	(class/obj/ref r1 r2)
 	(exit 'hmap _ '((rsp local_this) r1))
 	(vp-free local_size)
@@ -87,7 +86,7 @@
 		'(progn
 		(errorcases
 			(assign '((r1 str_data ub)) '(r3))
-			(gotoif '(r3 = +char_plus+) 'error5))
+			(gotoif '(r3 = +char_plus) 'error5))
 			(call 'hmap :set '(r0 r1 r2) '(r0 r1))
 			(errorif '(r1 = 0) 'error4)))
 
@@ -114,10 +113,9 @@
 (def-func-end)
 
 (defun defsetq (_ p)
-	(def-struct 'local)
-		(ptr 'this 'args 'val)
-		(pptr 'iter_begin 'iter_end)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this args val)
+		(pptr iter_begin iter_end))
 	(vp-alloc local_size)
 	(entry 'hmap _ '(r0 r1))
 	(assign '(r0 r1) '((rsp local_this) (rsp local_args)))
@@ -128,12 +126,12 @@
 	(gotoif '(r2 = 0) 'error1))
 	(class/array/get_both r1 r1 r2)
 	(vp-xor-rr r0 r0)
-	(vp-add-cr +ptr_size+ r1)
+	(vp-add-cr +ptr_size r1)
 	(assign '(r0 r1 r2) '((rsp local_val) (rsp local_iter_begin) (rsp local_iter_end)))
 	(loop-start)
 		(call 'obj :deref_if '((rsp local_val)))
 		(assign '((rsp local_iter_begin)) '(r1))
-		(call 'lisp :repl_eval '((rsp local_this) (r1 +ptr_size+)) '(r0 r1))
+		(call 'lisp :repl_eval '((rsp local_this) (r1 +ptr_size)) '(r0 r1))
 		(assign '(r1) '((rsp local_val)))
 	(errorcases
 		(assign '((r1 obj_vtable)) '(r3))
@@ -148,7 +146,7 @@
 		(assign '((r0 lisp_environment)) '(r0))
 		(exec p)
 		(assign '((rsp local_iter_begin) (rsp local_iter_end)) '(r1 r2))
-		(vp-add-cr (* +ptr_size+ 2) r1)
+		(vp-add-cr (* +ptr_size 2) r1)
 		(assign '(r1) '((rsp local_iter_begin)))
 	(loop-until '(r1 = r2))
 	(exit 'hmap _ '((rsp local_this) (rsp local_val)))
@@ -196,7 +194,7 @@
 		'(progn
 		(errorcases
 			(assign '((r1 str_data ub)) '(r3))
-			(gotoif '(r3 = +char_plus+) 'error4))
+			(gotoif '(r3 = +char_plus) 'error4))
 			(call 'hmap :set '(r0 r1 r2) '(_ r1))
 			(errorif '(r1 = 0) 'error3)))
 
@@ -249,7 +247,7 @@
 	(call 'hmap :search '(r0 r1) '(_ r1 _))
 	(vp-pop r0)
 	(vpif '(r1 /= 0))
-		(assign '((r1 +ptr_size+)) '(r1))
+		(assign '((r1 +ptr_size)) '(r1))
 	(else)
 		(assign '((r0 lisp_sym_nil)) '(r1))
 	(endif)
@@ -295,7 +293,7 @@
 	(call 'hmap :find '(r0 r1) '(_ r1 _))
 	(vp-pop r0)
 	(vpif '(r1 /= 0))
-		(assign '((r1 +ptr_size+)) '(r1))
+		(assign '((r1 +ptr_size)) '(r1))
 	(else)
 		(assign '((r0 lisp_sym_nil)) '(r1))
 	(endif)
@@ -408,10 +406,9 @@
 	;trashes
 	;r1-r14
 
-	(def-struct 'local)
-		(ptr 'this 'args 'env)
-		(pptr 'iter_begin 'iter_end)
-	(def-struct-end)
+	(def-struct local 0
+		(ptr this args env)
+		(pptr iter_begin iter_end))
 
 	(vp-alloc local_size)
 	(entry 'hmap :lisp_undef '(r0 r1))
@@ -423,7 +420,7 @@
 
 	(class/array/get_both r1 r3 r2)
 	(array-get-args r3 '(r0))
-	(vp-add-cr +ptr_size+ r3)
+	(vp-add-cr +ptr_size r3)
 	(assign '(r0 r2) '((rsp local_env) (rsp local_iter_end)))
 (errorcases
 	(call 'obj :inst_of `(r0 (@ ,(f-path 'hmap :vtable))) '(r0 r1))
@@ -439,10 +436,9 @@
 			(call 'list :erase2 '(r2 r1))
 		(endif)
 		(assign '((rsp local_iter_begin) (rsp local_iter_end)) '(r3 r2))
-		(vp-add-cr +ptr_size+ r3)
+		(vp-add-cr +ptr_size r3)
 	(loop-until '(r3 = r2))
-	(assign '((rsp local_this)) '(r0))
-	(assign '((r0 lisp_sym_nil)) '(r1))
+	(assign '((rsp local_this) (rsp local_env)) '(r0 r1))
 	(class/obj/ref r1 r2)
 
 	(exit 'hmap :lisp_undef '(r0 r1))

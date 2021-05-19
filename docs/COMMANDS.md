@@ -1,6 +1,5 @@
 ## cat
- 
-```lisp
+```code
 Usage: cat [options] [path] ...
 	options:
 		-h --help: this help info.
@@ -9,26 +8,24 @@ Usage: cat [options] [path] ...
 
 ```
 ## dump
- 
-```lisp
+```code
 Usage: dump [options] [path] ...
 	options:
 		-h --help: this help info.
+		-c --chunk num: chunk size, default 8.
 	If no paths given on command line
 	then will dump stdin.
 
 ```
 ## echo
- 
-```lisp
+```code
 Usage: echo [options] arg ...
 	options:
 		-h --help: this help info.
 
 ```
 ## files
- 
-```lisp
+```code
 Usage: file [options] [prefix] [postfix]
 	options:
 		-h --help: this help info.
@@ -40,8 +37,7 @@ Usage: file [options] [prefix] [postfix]
 
 ```
 ## gui
- 
-```lisp
+```code
 Usage: gui [node ...]
 	options:
 		-h --help: this help info.
@@ -50,19 +46,27 @@ Usage: gui [node ...]
 
 ```
 ## head
- 
-```lisp
+```code
 Usage: head [options file]
 	options:
 		-h --help: this help info.
-		-c --count num: default 10.
+		-c --count num: line count, default 10.
 	Returns lines from start of file or stdin.
 	Defaults to first 10 lines.
 
 ```
+## link
+```code
+Usage: link [options] 000-000 ...
+	options:
+		-h --help: this help info.
+	Start SHMEM link driver/s.
+	If no links names given on command line
+	then names are read from stdin.
+
+```
 ## lisp
- 
-```lisp
+```code
 Usage: lisp [options] [path] ...
 	options:
 		-h --help: this help info.
@@ -71,46 +75,40 @@ Usage: lisp [options] [path] ...
 
 ```
 ## make
- 
-```lisp
-Usage: make [options] [all] [boot] [platforms] [doc] [syms] [it]
+```code
+Usage: make [options] [all] [boot] [platforms] [doc] [it]
     options:
         -h --help: this help info.
     all: include all .vp files.
     boot: create a boot image.
     platforms: for all platforms not just the host.
     docs: scan source files and create documentation.
-    syms: scan source files and create VP sys/symbols.inc.
     it: all of the above !
 
 ```
 ## nodes
- 
-```lisp
+```code
 Usage: nodes [options]
 	options:
 		-h --help: this help info.
 
 ```
 ## null
- 
-```lisp
+```code
 Usage: null [options]
 	options:
 		-h --help: this help info.
 
 ```
 ## sdir
- 
-```lisp
+```code
 Usage: sdir [options] [prefix]
 	options:
 		-h --help: this help info.
 
 ```
 ## shuffle
- 
-```lisp
+```code
 Usage: shuffle [options] [line] ...
 	options:
 		-h --help: this help info.
@@ -119,19 +117,17 @@ Usage: shuffle [options] [line] ...
 
 ```
 ## slice
- 
-```lisp
+```code
 Usage: slice [options]
 	options:
 		-h --help: this help info.
-		-s --start num: default 0.
-		-e --end num: default -1.
+		-s --start num: start char index, default 0.
+		-e --end num: end char index, default -1.
 	Slice the lines from stdin to stdout.
 
 ```
 ## sort
- 
-```lisp
+```code
 Usage: sort [options] [line] ...
 	options:
 		-h --help: this help info.
@@ -140,32 +136,29 @@ Usage: sort [options] [line] ...
 
 ```
 ## split
- 
-```lisp
+```code
 Usage: split [options]
 	options:
 		-h --help: this help info.
 		-s --sep separator: default ,.
-		-e --sel: element default nil.
+		-e --sel num: selected element, default nil.
 	Split the lines from stdin to stdout.
 	Optionaly select a specific element of
 	the split.
 
 ```
 ## tail
- 
-```lisp
+```code
 Usage: tail [options file]
 	options:
 		-h --help: this help info.
-		-c --count num: default 10.
+		-c --count num: line count, default 10.
 	Returns lines from end of file or stdin.
 	Defaults to last 10 lines.
 
 ```
 ## tee
- 
-```lisp
+```code
 Usage: tee [options] [path] ...
 	options:
 		-h --help: this help info.
@@ -173,20 +166,18 @@ Usage: tee [options] [path] ...
 
 ```
 ## tocpm
- 
-```lisp
+```code
 Usage: tocmp [options] [path] ...
 	options:
 		-h --help: this help info.
-		-f --format 1|8|16|15|24|32: default 32.
+		-f --format 1|8|15|16|24|32: pixel format, default 32.
 	Load the images and save as .cpm images.
 	If no paths given on command line
 	then paths are read from stdin.
 
 ```
 ## unique
- 
-```lisp
+```code
 Usage: unique [options] [line] ...
 	options:
 		-h --help: this help info.
@@ -195,12 +186,11 @@ Usage: unique [options] [line] ...
 
 ```
 ## wc
- 
-```lisp
+```code
 
-usage: wc [-h] [-v] [-f :file] [-l] [-w] [-c]
+Usage: wc [-h] [-v] [-f :file] [-l] [-w] [-c]
 
-details:
+Details:
 
         -h   - displays help and exits
         -v   - displays app version and exits
@@ -211,9 +201,8 @@ details:
 
 ```
 ## wcseg
- 
-```lisp
-usage: wcseg [-h] [-v] [-f] [-l] [-w] [-c] {} ...
+```code
+Usage: wcseg [-h] [-v] [-f] [-l] [-w] [-c] {} ...
 
 word counter
 

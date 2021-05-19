@@ -154,7 +154,10 @@
 	(vp-push r0)
 	(array-bind-args r1 '(r0 r1))
 	(class/obj/ref r0 r2)
-	(class/obj/ref r1 r2)
+	(assign '((r1 hmap_parent)) '(r2))
+	(vpif '(r2 = 0))
+		(class/obj/ref r1 r2)
+	(endif)
 	(call 'view :add_front '(r0 r1) '(r1))
 	(vp-pop r0)
 
@@ -187,7 +190,10 @@
 	(vp-push r0)
 	(array-bind-args r1 '(r0 r1))
 	(class/obj/ref r0 r2)
-	(class/obj/ref r1 r2)
+	(assign '((r1 hmap_parent)) '(r2))
+	(vpif '(r2 = 0))
+		(class/obj/ref r1 r2)
+	(endif)
 	(call 'view :add_back '(r0 r1) '(r1))
 	(vp-pop r0)
 
@@ -551,9 +557,10 @@
 	;trashes
 	;r1-r14
 
-	(ptr 'this 'args 'msg 'data)
-	(plong 'iter_begin 'iter_end)
-	(struct 'owner_id 'net_id)
+	(def-vars
+		(ptr this args msg data)
+		(plong iter_begin iter_end)
+		(struct owner_id net_id_size))
 
 	(push-scope)
 	(entry 'view :lisp_emit {this, args})
@@ -582,7 +589,7 @@
 		(assign {*iter_begin} {data->ev_msg_target_id})
 		(assign {args->view_id} {data->ev_msg_action_source_id})
 		(call 'sys_mail :send {msg})
-		(assign {iter_begin + +long_size+} {iter_begin})
+		(assign {iter_begin + +long_size} {iter_begin})
 	(loop-end)
 	(endswitch)
 
