@@ -33,7 +33,7 @@
 (defclass Syntax () nil
 	; (Syntax) -> syntax
 	;default colours and state
-	(def this :keywords (defq keywords (env -31)) :state :text
+	(def this :keywords (defq keywords (env -101)) :state :text
 		:ink_keyword1 (<< (canvas-from-argb32 +argb_magenta 15) 32)
 		:ink_keyword2 (<< (canvas-from-argb32 +argb_red 15) 32)
 		:ink_keyword3 (<< (canvas-from-argb32 +argb_green 15) 32)
@@ -215,6 +215,20 @@
 							(setq whitespace "X")
 							%0))) string (list))))
 			(string)))
+
+	(defmethod :text_flow (this words line_width)
+		; (. syntax :text_flow words line_width) -> lines
+		;word reflow
+		(defq cnt 0 line (clear '()) lines (list))
+		(each (lambda (word)
+			(cond
+				((> (setq cnt (+ cnt (length word) 1)) line_width)
+					(push lines (join line " "))
+					(push (clear line) word)
+					(setq cnt (+ (length word) 1)))
+				(t	(push line word)))) words)
+		(if (> (length line) 0)
+			(push lines (join line " ")) lines))
 	)
 
 ;module

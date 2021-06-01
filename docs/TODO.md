@@ -8,6 +8,17 @@ In no particular order but to just to ensure I get thoughts down. I'll keep
 adding to this as I go along. If anybody would like to try helping out, then
 just get in touch.
 
+* Add keyboard macro record/playback/saveing to Editor.
+
+* Cut/copy/paste in the Terminal app.
+
+* Full editing in Textfield widgets. Shift selection and copy/cut/paste.
+
+* Create a regexp string search lib and add it to the Editor feature set.
+
+* Create a SVG import library. This should parse basic SVG files and convert
+them to ChrysaLisp vector format.
+
 * Add support for FPU to the VM. Scalar float/double support first of all maybe
 eventually create a FPU accelerated version of the vector math DSL.
 
@@ -26,7 +37,7 @@ network. I'm very tempted to create a link driver based on the Nanomsg library,
 this could prove interesting but would only work on hosted systems, still worth
 doing.
 
-* Create a Jit vp64 translator could be as simple as expanding the byte code
+* Create a Jit vp64 translator. Could be as simple as expanding the byte code
 into the existing emit buffer format and using the existing emit buffer
 compilation technique. Heterogeneous applications should work currently, just
 using the separated name spaces in the obj/ directory. But I'd quite like to
